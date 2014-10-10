@@ -38,7 +38,7 @@ WORKPATH=${2:-${PROJECTPATH}/work}
 POST_RECEIVE="${BAREPATH}/hooks/post-receive"
 
 
-if [ ! -d ${PROJECTPATH} ];
+if [ -d ${PROJECTPATH} ];
 	then
 		sshcall_error "Project already exists"
 	else
