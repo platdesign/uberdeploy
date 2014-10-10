@@ -129,9 +129,8 @@ deploy() {
 
 
 
-
+# Updates the current installation of uberdeploy on your machine
 update() {
-
 
 	local LIB_DIR=${SCRIPT%/*/*}
 
