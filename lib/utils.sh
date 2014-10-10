@@ -89,3 +89,73 @@ input_confirm() {
 			return 1
 	fi
 }
+
+
+
+
+
+
+vercomp () {
+    if [[ $1 == $2 ]]
+    then
+        return 0
+    fi
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+    # fill empty fields in ver1 with zeros
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++))
+    do
+        ver1[i]=0
+    done
+    for ((i=0; i<${#ver1[@]}; i++))
+    do
+        if [[ -z ${ver2[i]} ]]
+        then
+            # fill empty fields in ver2 with zeros
+            ver2[i]=0
+        fi
+        if ((10#${ver1[i]} > 10#${ver2[i]}))
+        then
+            return 1
+        fi
+        if ((10#${ver1[i]} < 10#${ver2[i]}))
+        then
+            return 2
+        fi
+    done
+    return 0
+}
+
+
+
+check_version() {
+	RES=$(curl -s -H "Accept: application/json" https://api.github.com/repos/platdesign/uberdeploy/tags?per_page=1);
+
+	REGEX='"name":.*"([0-9]\.[0-9]\.[0-9])"'
+
+	if [[ ${RES} =~ ${REGEX} ]]; then
+		REMOTE_VERSION=${BASH_REMATCH[1]}
+
+		vercomp ${1} ${REMOTE_VERSION}
+		return $?
+	fi
+
+}
+
+check_version_and_hint() {
+
+	check_version ${1};	STATUS=$?
+
+	case ${STATUS} in
+		0) echo ;;
+		1) echo "YEAH! Your version is from the future! ;)";;
+		2)
+			echo
+			echo "------------------------------------"
+			echo " $(tput setaf 6)New version available! $(tput sgr 0)(${REMOTE_VERSION})"
+			echo " $(tput dim)Update with: $(tput sgr 0)uberdeploy update"
+			echo "------------------------------------"
+		;;
+
+	esac
+}

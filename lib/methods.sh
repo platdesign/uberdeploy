@@ -132,29 +132,39 @@ deploy() {
 # Updates the current installation of uberdeploy on your machine
 update() {
 
-	local LIB_DIR=${SCRIPT%/*/*}
+	check_version ${VERSION};	STATUS=$?
 
-	local REPOSITORY="https://github.com/platdesign/uberdeploy"
+	case ${STATUS} in
+		0) echo "Already latest version" ;;
+		2)
+			local LIB_DIR=${SCRIPT%/*/*}
 
-	if [[ -d ${LIB_DIR} ]]; then
-		rm -rf ${LIB_DIR}
-	fi
+			#local REPOSITORY="https://github.com/platdesign/uberdeploy"
 
-	echo "Downloading repository"
-	mkdir -p ${LIB_DIR}
+			if [[ -d ${LIB_DIR} ]]; then
+				rm -rf ${LIB_DIR}
+			fi
 
-	# Get the tarball
-	TMPTARFILE="${LIB_DIR}/uberdeploy.tar.gz"
-	curl -fsSLo TMPTARFILE ${REPOSITORY}/tarball/master
+			echo "Downloading repository"
+			mkdir -p ${LIB_DIR}
 
-	# Extract tarball to directory
-	echo "Extracting files"
-	tar -zxf TMPTARFILE --strip-components 1 -C ${LIB_DIR}
+			# Get the tarball
+			TMPTARFILE="${LIB_DIR}/uberdeploy.tar.gz"
+			curl -fsSLo TMPTARFILE ${REPOSITORY}/tarball/master
 
-	# Remove the tarball
-	rm -rf TMPTARFILE
+			# Extract tarball to directory
+			echo "Extracting files"
+			tar -zxf TMPTARFILE --strip-components 1 -C ${LIB_DIR}
 
-	echo "Ready!"
+			# Remove the tarball
+			rm -rf TMPTARFILE
+
+			echo "Ready!"
+
+		;;
+
+	esac
+
 
 }
 
@@ -168,8 +178,13 @@ uninstall() {
 
 
 
+
 help() {
+
 	cat ${SCRIPTPATH}/../lib/help.txt
+
+	check_version_and_hint ${VERSION}
+
 }
 
 

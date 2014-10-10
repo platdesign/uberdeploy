@@ -9,7 +9,7 @@ Commands:
     init		Create a new project locally
     Join 		Join an existing project
     Update 		Update to latest version
-    uninstall	Uninstalls uberdeploy from your machine
+    uninstall 		Uninstalls uberdeploy from your machine
 
 Options:
 
