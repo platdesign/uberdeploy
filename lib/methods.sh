@@ -165,3 +165,12 @@ uninstall() {
 		echo 'Not implemented ;)'
 	fi
 }
+
+
+
+help() {
+	cat ${SCRIPTPATH}/../lib/help.txt
+}
+
+
+

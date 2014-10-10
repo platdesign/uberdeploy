@@ -1,16 +1,11 @@
 #!/bin/bash
 
 
-# Help text
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-	echo 'HELP WILL COME'
-	exit
-fi
-
 
 SCRIPT=`realpath $0`
 SCRIPTPATH=`dirname $SCRIPT`
 
+source ${SCRIPTPATH}/../lib/base.sh
 source ${SCRIPTPATH}/../lib/methods.sh
 
 echo #only to start in a new line
@@ -29,6 +24,8 @@ case ${1} in
 		update ${@/%${1}*} ;;
 	uninstall)
 		uninstall ${@/%${1}*} ;;
+	-h|--help|'')
+		help ;;
 	-*|--*)
 		echo "Warning: invalid option $opt" ;;
 esac
