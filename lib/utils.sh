@@ -58,11 +58,13 @@ detectProjectVariables() {
 
 
 input() {
+	local RES;
 	read -p "${1} " RES
 	eval "${2}=${RES}"
 }
 
 input_required() {
+	local RES;
 	while [[ ! ${RES} ]]; do
 		read -p "${1} [required] " RES
 	done
@@ -70,6 +72,7 @@ input_required() {
 }
 
 input_default() {
+	local RES;
 	read -p "${1} (default: ${2}) " RES
 	RES=${RES:-${2}}
 	eval "${3}=${RES}"

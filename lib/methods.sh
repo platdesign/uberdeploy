@@ -5,7 +5,7 @@ source ${SCRIPTPATH}/../lib/utils.sh
 
 
 
-
+# Initialize a repository only locally
 init() {
 	# detect project variables and ask for the ones which are not detecable or set
 	detectProjectVariables $@
@@ -19,6 +19,9 @@ init() {
 	saveConfigFile
 }
 
+
+
+# Initialize a repository only on remote
 initRemote() {
 	if [[ ! ${PROJECTNAME} ]]; then
 		detectProjectVariables $@
@@ -43,6 +46,11 @@ initRemote() {
 
 }
 
+
+
+
+# Init project locally and on remote
+# This should be used when starting a new empty project
 create() {
 
 	init $@
@@ -64,6 +72,31 @@ create() {
 	fi
 
 }
+
+
+# Clone an existing repository to your local machine
+join() {
+
+	input_required "Projectname" PROJECTNAME
+	input_required "SSH authority (e.g. user@server.uberspace.de)" SSH_AUTHORITY
+	input_default "Location" "./${PROJECTNAME}" PROJCTPATH
+
+	GIT_ORIGIN_URL="ssh://${SSH_AUTHORITY}/home/plati/Uberdeploy/${PROJECTNAME}/bare.git"
+
+	git clone ${GIT_ORIGIN_URL} ${PROJCTPATH}
+
+	cd ${PROJCTPATH}
+
+	detectProjectVariables
+
+	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
+		git remote add ${GIT_ORIGIN_NAME} ${GIT_ORIGIN_URL}
+	fi
+
+}
+
+
+
 
 
 

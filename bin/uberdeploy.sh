@@ -19,6 +19,8 @@ case ${1} in
 		init ${@/%${1}*} ;;
 	create)
 		create ${@/%${1}*} ;;
+	join)
+		join ${@/%${1}*} ;;
 	destroy)
 		destroy ${@/%${1}*} ;;
 	deploy)
