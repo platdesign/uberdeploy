@@ -77,3 +77,15 @@ input_default() {
 	RES=${RES:-${2}}
 	eval "${3}=${RES}"
 }
+
+
+input_confirm() {
+	read -p "${1} (y/n) " -n 1 -r RES
+	echo
+	if [[ ${RES} =~ ^[Yy]$ ]]
+		then
+			return 0
+		else
+			return 1
+	fi
+}

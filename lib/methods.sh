@@ -131,22 +131,38 @@ deploy() {
 
 
 update() {
-	echo 'Not implemented yet'
+
+
+	local LIB_DIR=${SCRIPT%/*/*}
+
+	local REPOSITORY="https://github.com/platdesign/uberdeploy"
+
+	if [[ -d ${LIB_DIR} ]]; then
+		rm -rf ${LIB_DIR}
+	fi
+
+	echo "Downloading repository"
+	mkdir -p ${LIB_DIR}
+
+	# Get the tarball
+	TMPTARFILE="${LIB_DIR}/uberdeploy.tar.gz"
+	curl -fsSLo TMPTARFILE ${REPOSITORY}/tarball/master
+
+	# Extract tarball to directory
+	echo "Extracting files"
+	tar -zxf TMPTARFILE --strip-components 1 -C ${LIB_DIR}
+
+	# Remove the tarball
+	rm -rf TMPTARFILE
+
+	echo "Ready!"
+
 }
 
-confirm() {
-	read -p ${1} -n 1 -r ${2}
-}
 
 
 uninstall() {
-	echo 'Not implemented yet...'
-	read -p "Are you sure? (y/n) " -n 1 -r RE
-	echo
-	if [[ ${RE} =~ ^[Yy]$ ]]
-		then
-			echo "Uninstalling uberdeploy..."
-		else
-			echo "Aborting uninstalling process"
+	if input_confirm "Really?"; then
+		echo 'Not implemented ;)'
 	fi
 }

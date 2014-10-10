@@ -14,7 +14,7 @@ REPOSITORY="https://github.com/platdesign/uberdeploy"
 
 if [[ ! -d ${LIB_DIR} ]]; then
 
-	printf "$(tput setaf 7)Downloading dotfiles...\033[m\n"
+	echo "Downloading repository"
 	mkdir -p ${LIB_DIR}
 
 	# Get the tarball
@@ -22,6 +22,7 @@ if [[ ! -d ${LIB_DIR} ]]; then
 	curl -fsSLo TMPTARFILE ${REPOSITORY}/tarball/master
 
 	# Extract tarball to directory
+	echo "Extracting files"
 	tar -zxf TMPTARFILE --strip-components 1 -C ${LIB_DIR}
 
 	# Remove the tarball
