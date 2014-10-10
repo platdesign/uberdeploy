@@ -13,5 +13,5 @@ Commands:
 
 Options:
 
-    -h | --help	Shows this page
-
+    -h | --help		Shows this page
+    -v | --version	Shows current version

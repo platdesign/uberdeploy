@@ -26,6 +26,8 @@ case ${1} in
 		uninstall ${@/%${1}*} ;;
 	-h|--help|'')
 		help ;;
+	-v|--version)
+		echo "uberdeploy ${VERSION}";;
 	-*|--*)
 		echo "Warning: invalid option $opt" ;;
 esac
