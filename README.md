@@ -6,9 +6,9 @@ A little git-deployment tool for uberspace.
 
 **OSX**
 
-`bash -c "$(curl -fsSL raw.githubusercontent.com/platdesign/uberdeploy/master/installOSX.sh)"`
+`bash -c "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/master/installOSX.sh)"`
 
-Clone repo and add `/bin/uberdeploy.sh` to PATH.
+
 No configuration required!
 
 ##Example
