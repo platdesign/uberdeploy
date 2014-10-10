@@ -21,6 +21,8 @@ case ${1} in
 		destroy ${@/%${1}*} ;;
 	deploy)
 		deploy ${@/%${1}*} ;;
+	update)
+		update ${@/%${1}*} ;;
 	-*|--*)
 		echo "Warning: invalid option $opt" ;;
 esac

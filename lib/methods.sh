@@ -80,3 +80,12 @@ deploy() {
 	git commit -m "${1}"
 	git push uberspace master
 }
+
+
+
+
+
+
+update() {
+	echo 'Updating Uberdeploy...'
+}
