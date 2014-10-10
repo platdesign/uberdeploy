@@ -1,6 +1,6 @@
 #uberdeploy
 
-A little deployment tool for uberspace.
+A little git-deployment tool for uberspace.
 
 ##Install
 
