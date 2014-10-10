@@ -24,7 +24,7 @@ create() {
 	read -p "Uberspace authority (e.g.) user@server.uberspace.de) " UBER_AUTHORITY
 	if [ ! ${UBER_AUTHORITY} ]; then exit 1; fi
 
-
+	# Ask for custom work directory path
 	read -p "Path to work directory (empty for default) " WORKPATH
 
 	# Execute the remoteCreate.sh on the server
@@ -40,13 +40,26 @@ create() {
 	if [ -d ${PROJECTPATH}/.git ]
 		then
 			cd ${PROJECTPATH}
-			git remote add uberspace ${ORIGIN_URL}
+			if ! git remote | grep uberspace > /dev/null; then
+				git remote add uberspace ${ORIGIN_URL}
+			fi
+
 		else
 			git clone ${ORIGIN_URL} ${PROJECTPATH}
 			cd ${PROJECTPATH}
-			git remote add uberspace ${ORIGIN_URL}
+			if ! git remote | grep uberspace > /dev/null; then
+				git remote add uberspace ${ORIGIN_URL}
+			fi
 	fi
 
+
+	if [ ! -d "deploy" ]; then
+		mkdir "deploy"
+	fi
+
+	if [ ! -e "deploy/post-receive" ]; then
+		echo "#!/bin/bash" > deploy/post-receive
+	fi
 }
 
 
