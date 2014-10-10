@@ -1,57 +1,59 @@
 #!/bin/bash
 
+source ${SCRIPTPATH}/../lib/githelper.sh
+source ${SCRIPTPATH}/../lib/utils.sh
 
-input() {
-	while [[ ! ${INPUT} ]]; do
-		read -p ${1} INPUT
-	done
 
-	${2}=${INPUT}
+
+
+init() {
+	# detect project variables and ask for the ones which are not detecable or set
+	detectProjectVariables $@
+
+	# inititalize git repository if not exist
+	if [ ! -d ${PROJECTPATH}/.git ]; then
+		git init ${PROJECTPATH}
+	fi
+
+	# save config file
+	saveConfigFile
+}
+
+initRemote() {
+	if [[ ! ${PROJECTNAME} ]]; then
+		detectProjectVariables $@
+	fi
+
+	local REMOTESCRIPT="${SCRIPTPATH}/../lib/remoteInit.sh"
+
+	SSHRESULT=$(ssh ${SSH_AUTHORITY} 'bash -s' < ${SCRIPTPATH}/../lib/remoteInit.sh ${PROJECTNAME} ${REMOTE_WORKPATH})
+
+	OUTPUT=${SSHRESULT%%----END----*}
+	VARIABLES=${SSHRESULT##*----END----}
+	eval ${VARIABLES}
+
+
+	if [[ ${SSHCALL_SUCCESS} = true ]];
+		then
+			echo 'Created on remote'
+		else
+			echo ${SSHCALL_MESSAGE}
+			exit 1;
+	fi
+
 }
 
 create() {
-	if [ ! ${1} ]
-		then
-			PROJECTNAME="${PWD##*/}"
-			PROJECTPATH="${PWD}"
-		else
-			PROJECTNAME="${1}"
-			PROJECTPATH="${PWD}/${PROJECTNAME}"
+
+	init $@
+	initRemote $@
+
+	GIT_ORIGIN_URL="ssh://${SSH_AUTHORITY}${GIT_ORIGIN_PATH}"
+
+	cd ${PROJECTPATH}
+	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
+		git remote add ${GIT_ORIGIN_NAME} ${GIT_ORIGIN_URL}
 	fi
-
-
-	# Ask for authority-uri
-	read -p "Uberspace authority (e.g.) user@server.uberspace.de) " UBER_AUTHORITY
-	if [ ! ${UBER_AUTHORITY} ]; then exit 1; fi
-
-	# Ask for custom work directory path
-	read -p "Path to work directory (empty for default) " WORKPATH
-
-	# Execute the remoteCreate.sh on the server
-	RESULT=$(ssh ${UBER_AUTHORITY} 'bash -s' < ${SCRIPTPATH}/../lib/remoteCreate.sh ${PROJECTNAME} ${WORKPATH})
-
-	echo ${RESULT%%----END----*}
-
-	ORIGIN_URL="ssh://${UBER_AUTHORITY}${RESULT##*----END----}"
-
-
-
-	# Create Repository local if not exists
-	if [ -d ${PROJECTPATH}/.git ]
-		then
-			cd ${PROJECTPATH}
-			if ! git remote | grep uberspace > /dev/null; then
-				git remote add uberspace ${ORIGIN_URL}
-			fi
-
-		else
-			git clone ${ORIGIN_URL} ${PROJECTPATH}
-			cd ${PROJECTPATH}
-			if ! git remote | grep uberspace > /dev/null; then
-				git remote add uberspace ${ORIGIN_URL}
-			fi
-	fi
-
 
 	if [ ! -d "deploy" ]; then
 		mkdir "deploy"
@@ -60,25 +62,34 @@ create() {
 	if [ ! -e "deploy/post-receive" ]; then
 		echo "#!/bin/bash" > deploy/post-receive
 	fi
+
 }
 
 
 
 destroy() {
+	echo 'Not implemented yet'
 	echo 'Destroy...' $@
 }
 
 
 
 deploy() {
-	if [ ! ${1} ]; then
-		echo 'Missing commit message!'
-		exit 1;
+
+	# If repository has uncomitted files
+	if git_anyChanges; then
+		read -p "Commit changes? (y/n) " -n 1 -r RESPONSE
+		echo
+		if [[ ${RESPONSE} =~ ^[Yy]$ ]]; then
+			COMMIT_MESSAGE="Deploy by ${USER} from ${HOSTNAME}"
+			git add --all
+			git commit --allow-empty -m "${COMMIT_MESSAGE}"
+		fi
 	fi
 
-	git add --all
-	git commit -m "${1}"
+	# Push to uberspace
 	git push uberspace master
+
 }
 
 
@@ -87,5 +98,22 @@ deploy() {
 
 
 update() {
-	echo 'Updating Uberdeploy...'
+	echo 'Not implemented yet'
+}
+
+confirm() {
+	read -p ${1} -n 1 -r ${2}
+}
+
+
+uninstall() {
+	echo 'Not implemented yet...'
+	read -p "Are you sure? (y/n) " -n 1 -r RE
+	echo
+	if [[ ${RE} =~ ^[Yy]$ ]]
+		then
+			echo "Uninstalling uberdeploy..."
+		else
+			echo "Aborting uninstalling process"
+	fi
 }

@@ -13,8 +13,10 @@ SCRIPTPATH=`dirname $SCRIPT`
 
 source ${SCRIPTPATH}/../lib/methods.sh
 
-
+echo #only to start in a new line
 case ${1} in
+	init)
+		init ${@/%${1}*} ;;
 	create)
 		create ${@/%${1}*} ;;
 	destroy)
@@ -23,6 +25,8 @@ case ${1} in
 		deploy ${@/%${1}*} ;;
 	update)
 		update ${@/%${1}*} ;;
+	uninstall)
+		uninstall ${@/%${1}*} ;;
 	-*|--*)
 		echo "Warning: invalid option $opt" ;;
 esac
