@@ -67,7 +67,7 @@ Ready for deployment? Type:
 	
 	
 ##Options
-|Option|Description|
-|:-|:-|
-|-v \| --version| Displays the current version installed on your machine.|
-|-h \| --help|Displays the help page.|
+| Option | Description |
+|:---|:----|
+| -v / --version | Displays the current version installed on your machine. |
+| -h / --help | Displays the help page. |
