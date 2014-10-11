@@ -109,6 +109,16 @@ destroy() {
 
 deploy() {
 
+	if [[ ! -d .git ]]; then
+		echo_error "Can't deploy. No repository found."
+		exit 1
+	fi
+
+	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
+		echo_error "Missing remote '${GIT_ORIGIN_NAME}'"
+		exit 1
+	fi
+
 	# If repository has uncomitted files
 	if git_anyChanges; then
 		read -p "Commit changes? (y/n) " -n 1 -r RESPONSE
@@ -139,8 +149,6 @@ update() {
 		2)
 			local LIB_DIR=${SCRIPT%/*/*}
 
-			#local REPOSITORY="https://github.com/platdesign/uberdeploy"
-
 			if [[ -d ${LIB_DIR} ]]; then
 				rm -rf ${LIB_DIR}
 			fi
@@ -149,7 +157,7 @@ update() {
 			mkdir -p ${LIB_DIR}
 
 			# Get the tarball
-			TMPTARFILE="${LIB_DIR}/uberdeploy.tar.gz"
+			TMPTARFILE="${LIB_DIR}/${TOOLNAME}.tar.gz"
 			curl -fsSLo TMPTARFILE ${REPOSITORY}/tarball/master
 
 			# Extract tarball to directory

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONFIGFILENAME='.uberdeploy'
+CONFIGFILENAME='.${TOOLNAME}'
 readConfigFile() {
 	local CONFIGFILE="${PROJECTPATH}/${CONFIGFILENAME}"
 	if [[ -e ${CONFIGFILE} ]]; then
@@ -19,6 +19,9 @@ saveConfigFile() {
 
 }
 
+
+# Default variables
+GIT_ORIGIN_NAME=${TOOLNAME};
 
 detectProjectVariables() {
 
@@ -44,8 +47,6 @@ detectProjectVariables() {
 	PROJECTNAME=${_PROJECTNAME}
 
 
-	# Set variables with default values
-	GIT_ORIGIN_NAME=${GIT_ORIGIN_NAME:='uberspace'}
 
 	# Ask for SSH_AUTHORITY if necessary
 	if [[ ! -n ${SSH_AUTHORITY} ]];
@@ -90,7 +91,9 @@ input_confirm() {
 	fi
 }
 
-
+echo_error() {
+	echo "$(tput setaf 1)Error: $(tput sgr 0)${1}";
+}
 
 
 
@@ -129,7 +132,7 @@ vercomp () {
 
 
 check_version() {
-	RES=$(curl -s -H "Accept: application/json" https://api.github.com/repos/platdesign/uberdeploy/tags?per_page=1);
+	RES=$(curl -s -H "Accept: application/json" https://api.github.com/repos/platdesign/${TOOLNAME}/tags?per_page=1);
 
 	REGEX='"name":.*"([0-9]\.[0-9]\.[0-9])"'
 
@@ -153,7 +156,7 @@ check_version_and_hint() {
 			echo
 			echo "------------------------------------"
 			echo " $(tput setaf 6)New version available! $(tput sgr 0)(${REMOTE_VERSION})"
-			echo " $(tput dim)Update with: $(tput sgr 0)uberdeploy update"
+			echo " $(tput dim)Update with: $(tput sgr 0)${TOOLNAME} update"
 			echo "------------------------------------"
 		;;
 

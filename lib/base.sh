@@ -1,6 +1,8 @@
 #!/bin/bash
 
-REPOSITORY="https://github.com/platdesign/uberdeploy";
+
+TOOLNAME='uberdeploy';
+REPOSITORY="https://github.com/platdesign/${TOOLNAME}";
 VERSION="0.0.2";
 
 
