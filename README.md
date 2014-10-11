@@ -71,3 +71,10 @@ Ready for deployment? Type:
 |:---|:----|
 | -v / --version | Displays the current version installed on your machine. |
 | -h / --help | Displays the help page. |
+
+
+
+##Contact##
+
+- [mail@platdesign.de](mailto:mail@platdesign.de)
+- [platdesign](https://twitter.com/platdesign) on Twitter
