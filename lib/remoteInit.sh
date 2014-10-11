@@ -70,11 +70,12 @@ if [ -d ${PROJECTPATH} ];
 					export GIT_WORK_TREE=\${REMOTE_WORKPATH}/
 					export GIT_DIR=${BAREPATH}/
 					git checkout -f
+					WORKPATH=\${REMOTE_WORKPATH}
 				fi
 			fi
 
 
-
+			cd ${WORKPATH}
 			if [ -e ${WORKPATH}/deploy/post-receive ]
 			then
 				sh ${WORKPATH}/deploy/post-receive

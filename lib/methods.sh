@@ -131,7 +131,7 @@ deploy() {
 	fi
 
 	# Push to uberspace
-	git push uberspace master
+	git push ${GIT_ORIGIN_NAME} master
 
 }
 
