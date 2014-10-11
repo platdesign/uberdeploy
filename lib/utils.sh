@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CONFIGFILENAME='.${TOOLNAME}'
+CONFIGFILENAME=".${TOOLNAME}"
 readConfigFile() {
 	local CONFIGFILE="${PROJECTPATH}/${CONFIGFILENAME}"
 	if [[ -e ${CONFIGFILE} ]]; then
