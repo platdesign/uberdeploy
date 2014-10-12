@@ -1,6 +1,25 @@
 #!/bin/sh
 
 
+
+# Get the name of the project from first given argument
+PROJECTNAME="${1}"
+
+# Place to store all deployed projects
+STORE="${HOME}/Uberdeploy"
+
+# Path to project
+PROJECTPATH="${STORE}/${PROJECTNAME}"
+
+# Path to projects bare repository
+BAREPATH="${PROJECTPATH}/bare.git"
+
+
+
+
+
+
+#########################################################
 SSHCALL_SUCCESS=true
 
 sshcall_error() {
@@ -17,25 +36,117 @@ sshcall_respond() {
 	echo "SSHCALL_MESSAGE='${SSHCALL_MESSAGE}';"
 	echo "GIT_ORIGIN_PATH='${BAREPATH}';"
 }
+#########################################################
 
 
-# Get the name of the project from first given argument
-PROJECTNAME="${1}"
 
-# Place to store all deployed projects
-STORE="${HOME}/Uberdeploy"
+create_hook_postReceive() {
+	local BARE="${1}"
+	local FILE="${BARE}/hooks/post-receive";
 
-# Path to project
-PROJECTPATH="${STORE}/${PROJECTNAME}"
+	cat <<EOT > ${FILE}
+	#!/bin/sh
 
-# Path to projects bare repository
-BAREPATH="${PROJECTPATH}/bare.git"
+	SCRIPTPATH=\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )
+	BARE=\${SCRIPTPATH%/*}
+	PROJECTPATH=\${BARE%/*}
+	WORK=\${PROJECTPATH}/work
 
-# Path to projects work directory (from input or default)
-WORKPATH=${2:-${PROJECTPATH}/work}
 
-# Path to post-receive hook file
-POST_RECEIVE="${BAREPATH}/hooks/post-receive"
+	checkout_worktree() {
+		local WORKPATH=\${1};
+		mkdir -p \${WORKPATH}
+		unset GIT_INDEX_FILE
+		export GIT_WORK_TREE=\${WORKPATH}/
+		export GIT_DIR=\${BARE}/
+		git checkout -f
+	}
+
+	handle_config() {
+		local CONFIG=\${1}
+		source \${CONFIG}
+
+		if [[ -n \${WORKTREE} ]]; then
+			mkdir -p \${WORKTREE}
+
+			if [ -d \${WORKTREE} ]; then
+				checkout_worktree \${WORKTREE}
+			fi
+		fi
+	}
+
+	config_get_val() {
+		local CONFIG=\${1};
+		local KEY=\${2};
+
+		local REGEX=\${KEY}'[[:space:][:space:]]*:[[:space:]]*["]?(.[^";]*)["]?[[:space:]]*[;]'
+
+		if [[ \${CONFIG} =~ \${REGEX} ]]; then
+			echo \${BASH_REMATCH[1]}
+		fi
+	}
+
+
+	# Create default workpath if not exists and checkout
+	checkout_worktree \${WORK}
+
+
+	# read config
+	CONFIGFILE=\${WORK}/.uberdeploy
+	if [ -e \${CONFIGFILE} ]; then
+
+		CONFIG=\$(cat \${CONFIGFILE})
+		WORKTREE=\$(config_get_val "\${CONFIG}" WORKTREE)
+		_CONFIG_RUN=\$(config_get_val "\${CONFIG}" RUN)
+
+		if [[ -n \${WORKTREE} ]]; then
+			checkout_worktree \${WORKTREE}
+		fi
+
+	fi
+
+
+
+	# Change to active worktree
+	if [[ -n \${WORKTREE} ]];
+		then
+			cd \${WORKTREE}
+		else
+			cd \${WORK}
+	fi
+
+
+	# Detect RUN
+	if [[ -n \${_CONFIG_RUN} ]]; then
+
+		sFile=\${PROJECTPATH}/service
+
+		echo "#!/bin/sh" > \${sFile}
+		echo "cd \${PWD}" >> \${sFile}
+		echo "exec \${_CONFIG_RUN} 2>&1" >> \${sFile}
+
+		# Make FILE executable
+		chmod +x \${sFile}
+	fi
+
+
+
+	# Call post-receive handler from deploy-folder if exists
+	if [ -e deploy/post-receive ]; then
+		_PWD=\${PWD}
+		cd \${PROJECTPATH}
+		source \${_PWD}/deploy/post-receive
+	fi
+
+EOT
+
+	# Make FILE executable
+	chmod +x ${FILE}
+
+}
+
+
+
 
 
 if [ -d ${PROJECTPATH} ];
@@ -46,44 +157,8 @@ if [ -d ${PROJECTPATH} ];
 		# Create bare repository
 		git init --bare ${BAREPATH}
 
-		# Create work directory
-		mkdir -p ${WORKPATH}
-
 		# Create post-receive hook file in bare repository
-		cat <<EOT > ${POST_RECEIVE}
-			#!/bin/sh
-			#echo -e "\n-------------- POST RECEIVE -------------------"
-			mkdir -p ${WORKPATH}
-			unset GIT_INDEX_FILE
-			export GIT_WORK_TREE=${WORKPATH}/
-			export GIT_DIR=${BAREPATH}/
-			git checkout -f
-
-
-			# If Workpath changed
-			if [ -e ${WORKPATH}/.uberdeploy ]
-			then
-				source ${WORKPATH}/.uberdeploy
-
-				if [[ -n \${REMOTE_WORKPATH} ]]; then
-					mkdir -p \${REMOTE_WORKPATH}
-					export GIT_WORK_TREE=\${REMOTE_WORKPATH}/
-					export GIT_DIR=${BAREPATH}/
-					git checkout -f
-					WORKPATH=\${REMOTE_WORKPATH}
-				fi
-			fi
-
-
-			cd ${WORKPATH}
-			if [ -e ${WORKPATH}/deploy/post-receive ]
-			then
-				sh ${WORKPATH}/deploy/post-receive
-			fi
-EOT
-
-		# Make post-receive hook executable
-		chmod +x ${POST_RECEIVE}
+		create_hook_postReceive ${BAREPATH}
 
 fi
 

@@ -29,12 +29,13 @@ initRemote() {
 
 	local REMOTESCRIPT="${SCRIPTPATH}/../lib/remoteInit.sh"
 
-	SSHRESULT=$(ssh ${SSH_AUTHORITY} 'bash -s' < ${SCRIPTPATH}/../lib/remoteInit.sh ${PROJECTNAME} ${REMOTE_WORKPATH})
+	SSHRESULT=$(ssh ${SSH_AUTHORITY} 'bash -s' < ${SCRIPTPATH}/../lib/remoteInit.sh ${PROJECTNAME})
 
 	OUTPUT=${SSHRESULT%%----END----*}
 	VARIABLES=${SSHRESULT##*----END----}
 	eval ${VARIABLES}
 
+	echo $OUTPUT
 
 	if [[ ${SSHCALL_SUCCESS} = true ]];
 		then

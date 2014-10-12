@@ -3,18 +3,27 @@
 CONFIGFILENAME=".${TOOLNAME}"
 readConfigFile() {
 	local CONFIGFILE="${PROJECTPATH}/${CONFIGFILENAME}"
-	if [[ -e ${CONFIGFILE} ]]; then
-		source ${CONFIGFILE}
+
+	if [[ ! -n ${CONFIGFILECONTENT} ]]; then
+		CONFIGFILECONTENT=$(cat ${CONFIGFILE})
 	fi
+	local CC=${CONFIGFILECONTENT}
+
+	SSH_AUTHORITY=$(config_get_val "${CC}" SSH_AUTHORITY)
+	WORKTREE=$(config_get_val "${CC}" WORKTREE)
+	_CONFIG_RUN=$(config_get_val "${CC}" RUN)
 }
 saveConfigFile() {
 	local CONFIGFILE="${PROJECTPATH}/${CONFIGFILENAME}"
 
-	echo "#Config" > ${CONFIGFILE}
-	echo "SSH_AUTHORITY='${SSH_AUTHORITY}';" >> ${CONFIGFILE}
+	echo "SSH_AUTHORITY: ${SSH_AUTHORITY};" > ${CONFIGFILE}
 
-	if [[ -n ${REMOTE_WORKPATH} ]]; then
-		echo "REMOTE_WORKPATH='${REMOTE_WORKPATH}';" >> ${CONFIGFILE}
+	if [[ -n ${WORKTREE} ]]; then
+		echo "WORKTREE: ${WORKTREE};" >> ${CONFIGFILE}
+	fi
+
+	if [[ -n ${_CONFIG_RUN} ]]; then
+		echo "RUN: ${_CONFIG_RUN};" >> ${CONFIGFILE}
 	fi
 
 }
@@ -161,4 +170,18 @@ check_version_and_hint() {
 		;;
 
 	esac
+}
+
+
+
+function config_get_val() {
+	local CONFIG=${1};
+	local KEY=${2};
+
+	local REGEX='(?:'${KEY}'\[\s]*:\[\s]*)(.*);'
+	local REGEX=${KEY}'[[:space:][:space:]]*:[[:space:]]*["]?(.[^";]*)["]?[[:space:]]*[;]'
+	#echo $REGEX
+	if [[ ${CONFIG} =~ ${REGEX} ]]; then
+		echo ${BASH_REMATCH[1]}
+	fi
 }
