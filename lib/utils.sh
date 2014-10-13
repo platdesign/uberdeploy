@@ -100,8 +100,17 @@ function input_confirm() {
 	fi
 }
 
+
+
+function echo_notify() {
+	echo -e "\033[33;32m      ${1}\033[0m";
+}
+function echo_notify_white() {
+	echo -e "\033[0m      ${1}\033[0m";
+}
+
 function echo_error() {
-	echo "$(tput setaf 1)Error: $(tput sgr 0)${1}";
+	echo_notify "\033[33;31m${1}";
 }
 
 
@@ -181,11 +190,6 @@ function func2string() {
 
 
 
-assign() {
-	echo \${$1%.}
-  eval "$1=\$(cat; echo .); $1=\${$1%.}"
-}
-
 remote_execute() {
 
 	local SEPERATOR='-------ENDOFREQUEST-------'
@@ -256,3 +260,16 @@ function ifDirSetVar() {
 			eval "${2}='${4}'";
 	fi
 }
+
+
+function config_get_val() {
+	local CONFIG=${1};
+	local KEY=${2};
+
+	local REGEX=${KEY}'[[:space:][:space:]]*:[[:space:]]*["]?(.[^";]*)["]?[[:space:]]*[;]'
+
+	if [[ ${CONFIG} =~ ${REGEX} ]]; then
+		echo ${BASH_REMATCH[1]}
+	fi
+}
+

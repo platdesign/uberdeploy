@@ -1,7 +1,6 @@
 #!/bin/bash
 
 source ${SCRIPTPATH}/../lib/githelper.sh
-source ${SCRIPTPATH}/../lib/globalUtils.sh
 source ${SCRIPTPATH}/../lib/utils.sh
 source ${SCRIPTPATH}/../lib/remoteMethods.sh
 
@@ -31,7 +30,15 @@ initRemote() {
 
 	createRemoteProject ${PROJECTNAME} ${SSH_AUTHORITY}
 
-	echo $(config_get_val "$REMOTE_EXECUTE_HEADER" 'GIT_ORIGIN_PATH')
+	local GIT_ORIGIN_URL="ssh://${SSH_AUTHORITY}"$(config_get_val "$REMOTE_EXECUTE_HEADER" 'GIT_ORIGIN_PATH');
+
+
+	cd ${PROJECTPATH}
+	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
+		git remote add ${GIT_ORIGIN_NAME} ${GIT_ORIGIN_URL}
+		echo_notify "Added remote '${GIT_ORIGIN_NAME}' to repository"
+		echo_notify_white "URL: ${GIT_ORIGIN_URL}"
+	fi
 
 }
 
@@ -45,19 +52,14 @@ create() {
 	init $@
 	initRemote $@
 
-	GIT_ORIGIN_URL="ssh://${SSH_AUTHORITY}${GIT_ORIGIN_PATH}"
-
 	cd ${PROJECTPATH}
-	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
-		git remote add ${GIT_ORIGIN_NAME} ${GIT_ORIGIN_URL}
-	fi
-
 	if [ ! -d "deploy" ]; then
 		mkdir "deploy"
 	fi
 
 	if [ ! -e "deploy/post-receive" ]; then
 		echo "#!/bin/bash" > deploy/post-receive
+		echo_notify "Added hook: deploy/post-receive"
 	fi
 
 }
@@ -184,5 +186,8 @@ help() {
 
 }
 
-
+function displayLog() {
+	detectProjectVariables $@
+	displayRemoteLog ${PROJECTNAME} ${SSH_AUTHORITY}
+}
 

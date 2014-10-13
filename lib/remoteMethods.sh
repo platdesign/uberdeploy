@@ -6,6 +6,7 @@ function createRemoteProject() {
 	local SSH_AUTHORITY="${2}";
 
 	COMMAND="
+		$(func2string remote_project_log)
 		$(func2string remote_project_create)
 		$(func2string remote_notify)
 		$(func2string remote_error)
@@ -32,12 +33,44 @@ function createRemoteProject() {
 }
 
 
+function displayRemoteLog() {
+	local NAME="${1}";
+	local SSH_AUTHORITY="${2}";
+
+	COMMAND="
+		$(func2string remote_notify)
+		$(func2string remote_error)
+		$(func2string remote_project_setEnvVars)
+		$(func2string remote_project_displayLog)
+
+		remote_project_setEnvVars \${HOME}'/Uberdeploy/${NAME}'
+		remote_project_displayLog
+	";
+
+	remote_execute "${SSH_AUTHORITY}" "${COMMAND}" BODY
+
+	echo "$BODY"
+}
+
+
+
+function remote_project_displayLog() {
+
+	remote_notify "Project-Log for '${PROJECT_NAME}'";
+	cat "${PROJECT_PATH}/log" | tail -20 | while read line;
+	do
+		remote_notify "${line}"
+	done
+
+}
+
+
 
 function remote_project_create() {
 	local PROJECTNAME="${1}";
 	remote_project_setEnvVars "${HOME}/Uberdeploy/${PROJECTNAME}"
 
-	if [ ! -d ${PROJECT_PATH} ];
+	if [ -d ${PROJECT_PATH} ];
 		then
 			remote_error "Project already exists";
 			error 1
@@ -45,7 +78,7 @@ function remote_project_create() {
 
 			# Create bare repo
 			remote_project_createBareRepo "${PROJECT_BARE}"
-
+			remote_project_log "Created"
 	fi
 }
 
@@ -71,11 +104,8 @@ function remote_project_createBareRepo() {
 
 	local BARE="${1}";
 
-	# Determine name of action for message
-	ifDirSetVar "${BARE}" DONE_ACTION 'reinitialized' 'initialized'
-
 	# Create bare repository
-	git init --bare "${BARE}"
+	remote_notify "$(git init --bare "${BARE}")"
 
 	# If any errors occure while creating bare repo
 	if [[ $? -ne 0 ]]; then
@@ -83,10 +113,8 @@ function remote_project_createBareRepo() {
 		error 1
 	fi
 
-	# Notify
-	remote_notify "Project-Repository ${DONE_ACTION}";
 
-	setHeader 'GIT_ORIGIN_PATH' 'asd';
+	setHeader 'GIT_ORIGIN_PATH' "${BARE}";
 
 	# Create post-receive-hook in bare-repo
 	remote_project_writePostReceiveHook "${BARE}"
@@ -109,6 +137,7 @@ function remote_project_writePostReceiveHook() {
 		#!/bin/sh
 
 		# Utils
+		$(func2string remote_project_log)
 		$(func2string remote_notify)
 		$(func2string remote_error)
 		$(func2string remote_project_callActiveWorktreeDeployHandler)
@@ -125,6 +154,8 @@ function remote_project_writePostReceiveHook() {
 
 		# Set some project variables
 		remote_project_setEnvVars "\${SCRIPTPATH%/*/*}"
+		ACTIVE_WORKTREE="\${PROJECT_WORK}";
+
 
 		# Create default workpath if not exists and checkout
 		remote_project_checkoutWorktree "\${PROJECT_WORK}"
@@ -134,11 +165,11 @@ function remote_project_writePostReceiveHook() {
 
 		# Checkout config-worktree if is given
 		CONF_WORKTREE=\$(config_get_val "\${CONFIG}" 'WORKTREE')
-
 		if [[ -n \${CONF_WORKTREE} ]]; then
 			remote_project_checkoutWorktree "\${CONF_WORKTREE}"
 			ACTIVE_WORKTREE="\${CONF_WORKTREE}"
 		fi
+
 
 		# Change to active worktree
 		cd "\${ACTIVE_WORKTREE}"
@@ -152,7 +183,8 @@ function remote_project_writePostReceiveHook() {
 		# Call post-receive handler from deploy-folder if exists
 		remote_project_callActiveWorktreeDeployHandler "\${PROJECT_PATH}" "\${ACTIVE_WORKTREE}" 'post-receive'
 
-
+		remote_notify "Project '${PROJECT_NAME}' successfully uberdeployed =)"
+		remote_project_log "Deployed"
 	-EOT
 
 
@@ -194,15 +226,18 @@ function remote_project_createServiceFile() {
 	if [[ -n ${RUNCOMMAND} ]];
 		then
 			echo "#!/bin/sh" > ${SVCFILE}
-			echo "cd \${PWD}" >> ${SVCFILE}
+			echo "cd ${PWD}" >> ${SVCFILE}
 			echo "exec ${RUNCOMMAND} 2>&1" >> ${SVCFILE}
 
 			# Make FILE executable
 			chmod +x ${SVCFILE}
+
+			remote_notify "Servicehandler created: ${SVCFILE}"
 		else
 			# Remove service file if exists and no runcommand is given
 			if [ -e ${SVCFILE} ]; then
 				rm -f ${SVCFILE}
+				remote_notify "Servicehandler removed: ${SVCFILE}"
 			fi
 	fi
 
@@ -214,6 +249,7 @@ function remote_project_createServiceFile() {
 function remote_project_setEnvVars() {
 	PROJECT_PATH="${1}";
 
+	PROJECT_NAME="${PROJECT_PATH##*/}";
 	PROJECT_BARE="${PROJECT_PATH}/bare.git";
 	PROJECT_WORK="${PROJECT_PATH}/work";
 	PROJECT_SERVICE="${PROJECT_PATH}/service";
@@ -225,15 +261,15 @@ function remote_project_setEnvVars() {
 
 function remote_project_readConfigFile() {
 	local FILE=${1};
-	local CONFIG;
+	local _CONFIG;
 
 	if [ -e ${FILE} ]; then
 
 		# Read config string from file
-		CONFIG="$(cat ${FILE})";
+		_CONFIG="$(cat ${FILE})";
 
 		# Attach config string to second parameter
-		eval "${2}='${CONFIG}'";
+		eval "${2}='${_CONFIG}'";
 
 	fi
 }
@@ -241,14 +277,16 @@ function remote_project_readConfigFile() {
 
 
 function remote_project_callActiveWorktreeDeployHandler() {
-	local PROJECTPATH="${2}";
+	local PROJECTPATH="${1}";
 	local WORKTREE="${2}";
 	local HANDLER="${3}";
+
 
 	local HANDLERPATH="${WORKTREE}/deploy/${HANDLER}"
 
 	if [ -e "${HANDLERPATH}" ]; then
 		cd "${PROJECTPATH}"
+		remote_notify "deploy/${HANDLER}"
 		source "${HANDLERPATH}"
 	fi
 }
@@ -262,3 +300,15 @@ function remote_error() {
 	remote_notify "\033[33;31m${1}";
 }
 
+
+function remote_project_log() {
+	local FILE="${PROJECT_PATH}/log";
+	local MESSAGE=${1};
+
+	if [ -d ${PROJECT_PATH} ]; then
+
+		echo -e "`date`	-  ${MESSAGE}" >> ${FILE}
+
+	fi
+
+}

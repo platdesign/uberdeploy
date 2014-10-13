@@ -24,6 +24,8 @@ case ${1} in
 		update ${@/%${1}*} ;;
 	uninstall)
 		uninstall ${@/%${1}*} ;;
+	log)
+		displayLog ${@/%${1}*} ;;
 	-h|--help|'')
 		help ;;
 	-v|--version)
