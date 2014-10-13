@@ -90,16 +90,15 @@ function input_default() {
 
 
 function input_confirm() {
-	local RES;
-	read -p "${1} (y/n) " -n 1 -r RES
-	echo
-	echo
-	if [[ ${RES} =~ ^[Yy]$ ]]
-		then
-			return 1
-		else
-			return 0
-	fi
+
+	while true; do
+		read -p "${1} (y/n) " yn
+		case ${yn} in
+			[Yy]* ) return 0;;
+			[Nn]* ) return 1;;
+			* ) echo_notify "Decisions are not confusing; Doubt is... ;)";;
+		esac
+	done
 }
 
 

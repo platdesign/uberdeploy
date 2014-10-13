@@ -4,9 +4,10 @@ source ${SCRIPTPATH}/../lib/githelper.sh
 source ${SCRIPTPATH}/../lib/utils.sh
 source ${SCRIPTPATH}/../lib/remoteMethods.sh
 
+source ${SCRIPTPATH}/../lib/local.sh
 
 # Initialize a repository only locally
-init() {
+function init() {
 	# detect project variables and ask for the ones which are not detecable or set
 	if [[ ! ${PROJECTNAME} ]]; then
 		detectProjectVariables $@
@@ -52,7 +53,7 @@ function initRemote() {
 
 # Init project locally and on remote
 # This should be used when starting a new empty project
-create() {
+function create() {
 
 	initRemote $@
 	init $@
@@ -78,12 +79,11 @@ create() {
 		echo "#!/bin/bash" > deploy/post-receive
 		echo_notify "Added hook: deploy/post-receive"
 	fi
-
 }
 
 
 # Clone an existing repository to your local machine
-join() {
+function join() {
 
 	input_required "Projectname" PROJECTNAME
 	input_required "SSH authority (e.g. user@server.uberspace.de)" SSH_AUTHORITY
@@ -100,39 +100,69 @@ join() {
 	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
 		git remote add ${GIT_ORIGIN_NAME} ${GIT_ORIGIN_URL}
 	fi
-
 }
 
 
 
 
 
+# Destroyes a project
+# 1. on remote
+# 1. on local machine
+function destroy() {
 
-destroy() {
+	if calledFromProjectPath; then
 
-	input_confirm "Would you really destroy this app?"
-	if [[ $? = 0 ]]; then
-		echo_notify "Two heads are better than one. ;)"
-		exit 1;
+		# Let the user confirm what he is doing ;)
+		if ! input_confirm "Would you really like to destroy this app?"; then
+			echo_notify "Two heads are better than one. ;)"
+			exit 1;
+		fi
+
+
+		# Set project variables
+		project_setProjectVars ${PWD};
+
+		# Collect project variables (config,git-config)
+		project_collectProjectVars ${PWD};
+
+
+		# If PROJECT_SSH_AUTHORITY is set
+		if project_varsSet 'NAME' 'SSH_AUTHORITY'; then
+
+			# Let the user confirm what he is doing ;)
+			if input_confirm "Remove project from remote '${PROJECT_SSH_AUTHORITY}'?"; then
+
+				# Destroy the remote project
+				if ! destroyRemoteProject "${PROJECT_NAME}" "${PROJECT_SSH_AUTHORITY}"; then
+					echo_error "Remote repository couldn't be destroyed.";
+				fi
+
+			fi
+
+		fi
+
+		# Let the user confirm what he is doing ;)
+		if input_confirm "Remove project from local machine?"; then
+			if rm -rf "${PROJECT_PATH}"; then
+				echo_notify "Local project successfully removed.";
+			else
+				echo_error "Can't remove local project.";
+			fi
+		fi
+
+
+	else
+
+		echo_error "Project not found. Move to projects folder.";
+
 	fi
 
-	detectProjectVariables $@
-
-	destroyRemoteProject ${PROJECTNAME} ${SSH_AUTHORITY}
-
-	if [[ $? -gt 0 ]]; then
-		echo_error 'Remote repository could not be destroyed.';
-	fi
-
-	input_confirm "Remove from local machine?"
-	if [[ $? = 1 ]]; then
-		rm -rf "${PROJECTPATH}"
-	fi
 }
 
 
 
-deploy() {
+function deploy() {
 
 	if [[ ! ${PROJECTNAME} ]]; then
 		detectProjectVariables $@
@@ -208,7 +238,7 @@ deploy() {
 
 
 # Updates the current installation of uberdeploy on your machine
-update() {
+function update() {
 
 	check_version ${VERSION};	STATUS=$?
 
@@ -240,13 +270,11 @@ update() {
 		;;
 
 	esac
-
-
 }
 
 
 
-uninstall() {
+function uninstall() {
 	if input_confirm "Really?"; then
 		echo 'Not implemented ;)'
 	fi
@@ -255,13 +283,14 @@ uninstall() {
 
 
 
-help() {
+function help() {
 
 	cat ${SCRIPTPATH}/../lib/help.txt
 
 	check_version_and_hint ${VERSION}
-
 }
+
+
 
 function displayLog() {
 	detectProjectVariables $@
