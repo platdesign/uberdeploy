@@ -52,6 +52,14 @@ Ready for deployment? Type:
 	*Example:* `uberdeploy deploy`
 	
 	Adds all files to the stage with `git add --all`, commits the stage and pushes the repository to remote `uberspace`. After push the workingtree will be checked out on the remote server.
+
+- **destroy**
+
+	*Example:* `uberdeploy destroy`
+	
+	Destroyes the current project.
+
+
 	
 - **update**
 
