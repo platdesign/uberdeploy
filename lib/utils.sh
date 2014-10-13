@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CONFIGFILENAME=".${TOOLNAME}"
-readConfigFile() {
+function readConfigFile() {
 	local CONFIGFILE="${PROJECTPATH}/${CONFIGFILENAME}"
 
 	if [[ ! -n ${CONFIGFILECONTENT} ]]; then
@@ -13,7 +13,7 @@ readConfigFile() {
 	WORKTREE=$(config_get_val "${CC}" WORKTREE)
 	_CONFIG_RUN=$(config_get_val "${CC}" RUN)
 }
-saveConfigFile() {
+function saveConfigFile() {
 	local CONFIGFILE="${PROJECTPATH}/${CONFIGFILENAME}"
 
 	echo "SSH_AUTHORITY: ${SSH_AUTHORITY};" > ${CONFIGFILE}
@@ -32,7 +32,7 @@ saveConfigFile() {
 # Default variables
 GIT_ORIGIN_NAME=${TOOLNAME};
 
-detectProjectVariables() {
+function detectProjectVariables() {
 
 	# Detect project name
 	if [[ -n ${1} ]]
@@ -67,13 +67,13 @@ detectProjectVariables() {
 
 
 
-input() {
+function input() {
 	local RES;
 	read -p "${1} " RES
 	eval "${2}=${RES}"
 }
 
-input_required() {
+function input_required() {
 	local RES;
 	while [[ ! ${RES} ]]; do
 		read -p "${1} [required] " RES
@@ -81,7 +81,7 @@ input_required() {
 	eval "${2}=${RES}"
 }
 
-input_default() {
+function input_default() {
 	local RES;
 	read -p "${1} (default: ${2}) " RES
 	RES=${RES:-${2}}
@@ -89,7 +89,7 @@ input_default() {
 }
 
 
-input_confirm() {
+function input_confirm() {
 	read -p "${1} (y/n) " -n 1 -r RES
 	echo
 	if [[ ${RES} =~ ^[Yy]$ ]]
@@ -100,14 +100,14 @@ input_confirm() {
 	fi
 }
 
-echo_error() {
+function echo_error() {
 	echo "$(tput setaf 1)Error: $(tput sgr 0)${1}";
 }
 
 
 
 
-vercomp () {
+function vercomp () {
     if [[ $1 == $2 ]]
     then
         return 0
@@ -140,7 +140,7 @@ vercomp () {
 
 
 
-check_version() {
+function check_version() {
 	RES=$(curl -s -H "Accept: application/json" https://api.github.com/repos/platdesign/${TOOLNAME}/tags?per_page=1);
 
 	REGEX='"name":.*"([0-9]\.[0-9]\.[0-9])"'
@@ -154,7 +154,7 @@ check_version() {
 
 }
 
-check_version_and_hint() {
+function check_version_and_hint() {
 
 	check_version ${1};	STATUS=$?
 
@@ -174,14 +174,85 @@ check_version_and_hint() {
 
 
 
-function config_get_val() {
-	local CONFIG=${1};
-	local KEY=${2};
+function func2string() {
+	local FNAME=${1};
+	echo -e "$(typeset -f ${FNAME})";
+}
 
-	local REGEX='(?:'${KEY}'\[\s]*:\[\s]*)(.*);'
-	local REGEX=${KEY}'[[:space:][:space:]]*:[[:space:]]*["]?(.[^";]*)["]?[[:space:]]*[;]'
-	#echo $REGEX
-	if [[ ${CONFIG} =~ ${REGEX} ]]; then
-		echo ${BASH_REMATCH[1]}
+
+
+assign() {
+	echo \${$1%.}
+  eval "$1=\$(cat; echo .); $1=\${$1%.}"
+}
+
+remote_execute() {
+
+	local SEPERATOR='-------ENDOFREQUEST-------'
+
+	local __RES;
+
+	__RES=$(ssh ${1} 'bash -s' <<--SSH-END
+		#!/bin/sh
+
+		RES_HEADER='';
+		$(func2string func2string)
+		function request_response() {
+			echo ${SEPERATOR}
+			echo -e "\${RES_HEADER}"
+		}
+		function error() {
+			request_response
+			exit \${1};
+		}
+		function setHeader() {
+			RES_HEADER="\${RES_HEADER} \n\${1}:\"\${2}\";"
+		}
+		# Execute given commands
+		${2}
+
+		# Send data to client
+		request_response
+
+	-SSH-END)
+	__RESCODE=${?};
+
+
+
+	REMOTE_EXECUTE_BODY="${__RES%%${SEPERATOR}*}"
+	REMOTE_EXECUTE_HEADER="${__RES##*${SEPERATOR}}"
+	REMOTE_EXECUTE_STATUS=$?
+
+
+	# Assign Body to variable if given
+	if [[ -n ${3} ]]; then
+		eval "${3}='${REMOTE_EXECUTE_BODY}'"
+	fi
+
+	# Assign Header to variable if given
+	if [[ -n ${4} ]]; then
+		eval "${4}='${REMOTE_EXECUTE_HEADER}'"
+	fi
+
+}
+
+
+function ifFileSetVar() {
+	local FILE="${1}";
+	if [ -e ${FILE} ];
+		then
+			eval "${2}='${3}'";
+		else
+			eval "${2}='${4}'";
+	fi
+}
+
+function ifDirSetVar() {
+	local FILE="${1}";
+	if [ -d ${FILE} ];
+		then
+			eval "${2}='${3}'";
+		else
+			eval "${2}='${4}'";
 	fi
 }

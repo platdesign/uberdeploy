@@ -1,8 +1,9 @@
 #!/bin/bash
 
 source ${SCRIPTPATH}/../lib/githelper.sh
+source ${SCRIPTPATH}/../lib/globalUtils.sh
 source ${SCRIPTPATH}/../lib/utils.sh
-
+source ${SCRIPTPATH}/../lib/remoteMethods.sh
 
 
 # Initialize a repository only locally
@@ -27,23 +28,10 @@ initRemote() {
 		detectProjectVariables $@
 	fi
 
-	local REMOTESCRIPT="${SCRIPTPATH}/../lib/remoteInit.sh"
 
-	SSHRESULT=$(ssh ${SSH_AUTHORITY} 'bash -s' < ${SCRIPTPATH}/../lib/remoteInit.sh ${PROJECTNAME})
+	createRemoteProject ${PROJECTNAME} ${SSH_AUTHORITY}
 
-	OUTPUT=${SSHRESULT%%----END----*}
-	VARIABLES=${SSHRESULT##*----END----}
-	eval ${VARIABLES}
-
-	echo $OUTPUT
-
-	if [[ ${SSHCALL_SUCCESS} = true ]];
-		then
-			echo 'Created on remote'
-		else
-			echo ${SSHCALL_MESSAGE}
-			exit 1;
-	fi
+	echo $(config_get_val "$REMOTE_EXECUTE_HEADER" 'GIT_ORIGIN_PATH')
 
 }
 

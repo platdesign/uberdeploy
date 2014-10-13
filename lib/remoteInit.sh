@@ -44,7 +44,7 @@ create_hook_postReceive() {
 	local BARE="${1}"
 	local FILE="${BARE}/hooks/post-receive";
 
-	cat <<EOT > ${FILE}
+	cat <<--EOT > ${FILE}
 	#!/bin/sh
 
 	SCRIPTPATH=\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )
@@ -138,7 +138,9 @@ create_hook_postReceive() {
 		source \${_PWD}/deploy/post-receive
 	fi
 
-EOT
+	-EOT
+
+
 
 	# Make FILE executable
 	chmod +x ${FILE}
