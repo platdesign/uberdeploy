@@ -6,7 +6,7 @@ source ${SCRIPTPATH}/../lib/remoteMethods.sh
 
 source ${SCRIPTPATH}/../lib/local.sh
 
-# Initialize a repository only locally
+# Initialize a project locally only
 function init() {
 
 	local _PROJECT_PATH="${PWD}";
@@ -43,66 +43,70 @@ function init() {
 		echo_notify "$(git init ${PROJECT_PATH})"
 	fi
 
-	# If config does not exist create it.
+
+	# Create config-file if not exists
 	if ! isFile ${PROJECT_CONFIG}; then
 		echo "" > ${PROJECT_CONFIG};
 		echo_notify "Config created."
 	fi
 
+
+	# Create deploy folder if not exists
+	if ! isDir "${PROJECT_PATH}/deploy"; then
+		mkdir -p "deploy";
+		echo_notify "Deploy folder created."
+	fi
+
+
+	# Create post-receive hook if not exists
+	if ! isFile "${PROJECT_PATH}/deploy/post-receive"; then
+		echo "#!/bin/bash" > deploy/post-receive
+		echo_notify "Added hook: deploy/post-receive"
+	fi
+
+
 	# Notify
-	echo_notify "Project '${PROJECT_NAME}' successfully initialized."
+	echo_notify "Project '${PROJECT_NAME}' successfully initialized.";
 }
 
 
 
-# Initialize a repository only on remote
-function initRemote() {
-	if [[ ! ${PROJECTNAME} ]]; then
-		detectProjectVariables $@
-	fi
-
-
-	createRemoteProject ${PROJECTNAME} ${SSH_AUTHORITY}
-
-	if [[ $? -gt 0 ]]; then
-		echo_error 'Remote repository could not be created.';
-		exit 1;
-	fi
-}
-
-
-
-
-# Init project locally and on remote
+# Initialize a project locally and on remote
 # This should be used when starting a new empty project
 function create() {
 
-
-
-	initRemote $@
+	# Call init with same paramters
 	init $@
 
+	# Collect project variables (config,git-config)
+	project_collectProjectVars ${PROJECT_PATH};
 
-	local GIT_ORIGIN_URL="ssh://${SSH_AUTHORITY}"$(config_get_val "$REMOTE_EXECUTE_HEADER" 'GIT_ORIGIN_PATH');
 
+	# Ask for PROJECT_SSH_AUTHORITY if necessary
+	if ! project_ensureVars 'SSH_AUTHORITY'; then
+		input_required "SSH authority (e.g. user@server.uberspace.de) " PROJECT_SSH_AUTHORITY
+	fi
 
-	cd ${PROJECTPATH}
+	# Create remote repository
+	if ! createRemoteProject ${PROJECT_NAME} ${PROJECT_SSH_AUTHORITY}; then
+		echo_error 'Remote repository could not be created. Maybe you can join it.';
+		exit 1;
+	fi
+
+	local GIT_ORIGIN_URL="ssh://${PROJECT_SSH_AUTHORITY}"$(config_get_val "$REMOTE_EXECUTE_HEADER" 'GIT_ORIGIN_PATH');
+
+	# Change PWD to PROJECT_PATH
+	cd ${PROJECT_PATH}
+
+	# Add remote to git repository
 	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
 		git remote add ${GIT_ORIGIN_NAME} ${GIT_ORIGIN_URL}
 		echo_notify "Added remote '${GIT_ORIGIN_NAME}' to repository"
 		echo_notify_white "URL: ${GIT_ORIGIN_URL}"
 	fi
 
-
-	cd ${PROJECTPATH}
-	if [ ! -d "deploy" ]; then
-		mkdir "deploy"
-	fi
-
-	if [ ! -e "deploy/post-receive" ]; then
-		echo "#!/bin/bash" > deploy/post-receive
-		echo_notify "Added hook: deploy/post-receive"
-	fi
+	# Notify
+	echo_notify "Project '${PROJECT_NAME}' successfully created.";
 }
 
 
@@ -152,7 +156,7 @@ function destroy() {
 
 
 		# If PROJECT_SSH_AUTHORITY is set
-		if project_varsSet 'NAME' 'SSH_AUTHORITY'; then
+		if project_ensureVars 'NAME' 'SSH_AUTHORITY'; then
 
 			# Let the user confirm what he is doing ;)
 			if input_confirm "Remove project from remote '${PROJECT_SSH_AUTHORITY}'?"; then

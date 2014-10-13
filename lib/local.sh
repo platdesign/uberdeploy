@@ -37,7 +37,7 @@ function project_collectProjectVars() {
 }
 
 
-function project_varsSet() {
+function project_ensureVars() {
 	for varname in $@; do
 		V="PROJECT_${varname}"
 
