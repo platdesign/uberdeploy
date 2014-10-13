@@ -8,27 +8,55 @@ source ${SCRIPTPATH}/../lib/remoteMethods.sh
 # Initialize a repository only locally
 init() {
 	# detect project variables and ask for the ones which are not detecable or set
-	detectProjectVariables $@
+	if [[ ! ${PROJECTNAME} ]]; then
+		detectProjectVariables $@
+	fi
 
 	# inititalize git repository if not exist
 	if [ ! -d ${PROJECTPATH}/.git ]; then
-		git init ${PROJECTPATH}
+		RES=$(git init ${PROJECTPATH})
+		if [[ $? -gt 0 ]];
+			then
+				echo_error "${RES}";
+				exit 1;
+			else
+				echo_notify "${RES}";
+		fi
 	fi
 
 	# save config file
 	saveConfigFile
+
+	echo_notify "Project '${PROJECTNAME}' initialized on local machine"
 }
 
 
 
 # Initialize a repository only on remote
-initRemote() {
+function initRemote() {
 	if [[ ! ${PROJECTNAME} ]]; then
 		detectProjectVariables $@
 	fi
 
 
 	createRemoteProject ${PROJECTNAME} ${SSH_AUTHORITY}
+
+	if [[ $? -gt 0 ]]; then
+		echo_error 'Remote repository could not be created.';
+		exit 1;
+	fi
+}
+
+
+
+
+# Init project locally and on remote
+# This should be used when starting a new empty project
+create() {
+
+	initRemote $@
+	init $@
+
 
 	local GIT_ORIGIN_URL="ssh://${SSH_AUTHORITY}"$(config_get_val "$REMOTE_EXECUTE_HEADER" 'GIT_ORIGIN_PATH');
 
@@ -40,17 +68,6 @@ initRemote() {
 		echo_notify_white "URL: ${GIT_ORIGIN_URL}"
 	fi
 
-}
-
-
-
-
-# Init project locally and on remote
-# This should be used when starting a new empty project
-create() {
-
-	init $@
-	initRemote $@
 
 	cd ${PROJECTPATH}
 	if [ ! -d "deploy" ]; then
@@ -100,6 +117,10 @@ destroy() {
 
 deploy() {
 
+	if [[ ! ${PROJECTNAME} ]]; then
+		detectProjectVariables $@
+	fi
+
 	if [[ ! -d .git ]]; then
 		echo_error "Can't deploy. No repository found."
 		exit 1
@@ -110,20 +131,47 @@ deploy() {
 		exit 1
 	fi
 
+
+	COMMIT_MESSAGE="Deploy by ${USER} from ${HOSTNAME}"
+
+
 	# If repository has uncomitted files
-	if git_anyChanges; then
-		read -p "Commit changes? (y/n) " -n 1 -r RESPONSE
-		echo
-		if [[ ${RESPONSE} =~ ^[Yy]$ ]]; then
-			COMMIT_MESSAGE="Deploy by ${USER} from ${HOSTNAME}"
-			git add --all
-			git commit --allow-empty -m "${COMMIT_MESSAGE}"
-		fi
+	if git_anyChanges;
+		then
+			input_confirm "Commit changes?"
+			if [[ $? = 1 ]]; then
+				git add --all
+				git commit --quiet -m "${COMMIT_MESSAGE}"
+				echo_notify "Commited: ${COMMIT_MESSAGE}"
+			fi
+		else
+			input_confirm "No changes. Create empty commit?"
+
+			if [[ $? = 1 ]]; then
+				git add --all
+				git commit --allow-empty -q -m "${COMMIT_MESSAGE}" 2>&1
+				echo_notify "Commited: ${COMMIT_MESSAGE}"
+			fi
 	fi
 
-	# Push to uberspace
-	git push ${GIT_ORIGIN_NAME} master
 
+	# Push to uberspace
+
+
+	git push --porcelain "${GIT_ORIGIN_NAME}" master  2>&1 | while read line; do
+		REMOTE=$( echo `echo $line | grep remote` | sed -n -e 's/^.*remote: //p' )
+		if [[ -n ${REMOTE} ]];
+			then
+				echo "$REMOTE";
+		fi
+	done
+
+
+	if [[ $? = 0 ]]; then
+		echo_notify "Project '${PROJECTNAME}' successfully uberdeployed =)"
+	else
+		echo_error 'Error occoured';
+	fi
 }
 
 

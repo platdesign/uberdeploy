@@ -90,13 +90,14 @@ function input_default() {
 
 
 function input_confirm() {
+	local RES;
 	read -p "${1} (y/n) " -n 1 -r RES
 	echo
 	if [[ ${RES} =~ ^[Yy]$ ]]
 		then
-			return 0
-		else
 			return 1
+		else
+			return 0
 	fi
 }
 
@@ -108,6 +109,7 @@ function echo_notify() {
 function echo_notify_white() {
 	echo -e "\033[0m      ${1}\033[0m";
 }
+
 
 function echo_error() {
 	echo_notify "\033[33;31m${1}";
@@ -196,31 +198,42 @@ remote_execute() {
 
 	local __RES;
 
-	__RES=$(ssh ${1} 'bash -s' <<--SSH-END
-		#!/bin/sh
 
-		RES_HEADER='';
-		$(func2string func2string)
-		function request_response() {
-			echo ${SEPERATOR}
-			echo -e "\${RES_HEADER}"
-		}
-		function error() {
+	echo_notify "Connecting to '${1}'";
+	__RES=$(
+		exec 2>&1
+		ssh "${1}" 'bash -s' <<--SSH-END
+			#!/bin/sh
+
+			$(func2string func2string)
+			function request_response() {
+				echo ${SEPERATOR}
+				echo -e "\${RES_HEADER}"
+			}
+			function error() {
+				request_response
+				exit \$(( \${1} + 100 ));
+			}
+			function setHeader() {
+				local FORMAT="\${1}:\"\${2}\";";
+
+				RES_HEADER="\${RES_HEADER}\${FORMAT}";
+			}
+			# Execute given commands
+			${2}
+
+			# Send data to client
 			request_response
-			exit \${1};
-		}
-		function setHeader() {
-			RES_HEADER="\${RES_HEADER} \n\${1}:\"\${2}\";"
-		}
-		# Execute given commands
-		${2}
 
-		# Send data to client
-		request_response
-
-	-SSH-END)
+		-SSH-END
+	);
 	__RESCODE=${?};
 
+
+	if [ \( ${__RESCODE} -gt 0 \) -a \( ${__RESCODE} -lt 100 \) -o \( ${__RESCODE} -eq 255 \) ]; then
+		echo_error "${__RES}"
+		return 1;
+	fi
 
 
 	REMOTE_EXECUTE_BODY="${__RES%%${SEPERATOR}*}"
@@ -238,6 +251,11 @@ remote_execute() {
 		eval "${4}='${REMOTE_EXECUTE_HEADER}'"
 	fi
 
+	if [[ -n ${REMOTE_EXECUTE_BODY} ]]; then
+		echo -e "${REMOTE_EXECUTE_BODY}\c"
+	fi
+
+	return $__RESCODE;
 }
 
 
@@ -263,12 +281,12 @@ function ifDirSetVar() {
 
 
 function config_get_val() {
-	local CONFIG=${1};
+	local __CONF="${1}";
 	local KEY=${2};
 
 	local REGEX=${KEY}'[[:space:][:space:]]*:[[:space:]]*["]?(.[^";]*)["]?[[:space:]]*[;]'
 
-	if [[ ${CONFIG} =~ ${REGEX} ]]; then
+	if [[ ${__CONF} =~ ${REGEX} ]]; then
 		echo ${BASH_REMATCH[1]}
 	fi
 }

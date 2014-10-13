@@ -20,15 +20,14 @@ function createRemoteProject() {
 		$(func2string config_get_val)
 		$(func2string ifFileSetVar)
 		$(func2string ifDirSetVar)
-
+		$(func2string get_realpath)
 
 		remote_project_create ${NAME}
 
 	";
 
-	remote_execute "${SSH_AUTHORITY}" "${COMMAND}" BODY
-
-	echo "$BODY"
+	remote_execute "${SSH_AUTHORITY}" "${COMMAND}"
+	return $?;
 
 }
 
@@ -49,7 +48,6 @@ function displayRemoteLog() {
 
 	remote_execute "${SSH_AUTHORITY}" "${COMMAND}" BODY
 
-	echo "$BODY"
 }
 
 
@@ -80,6 +78,9 @@ function remote_project_create() {
 			remote_project_createBareRepo "${PROJECT_BARE}"
 			remote_project_log "Created"
 	fi
+
+	# Notify
+	remote_notify "Project '${PROJECT_NAME}' created on remote"
 }
 
 function remote_project_reinitialize() {
@@ -88,6 +89,9 @@ function remote_project_reinitialize() {
 
 	# Create bare repo
 	remote_project_createBareRepo "${PROJECT_BARE}"
+
+	# Notify
+	remote_notify "Project '${PROJECT_NAME}' reinitialized on remote"
 }
 
 
@@ -134,7 +138,7 @@ function remote_project_writePostReceiveHook() {
 
 	# Write into file
 	cat <<--EOT > ${FILE}
-		#!/bin/sh
+		#!/bin/bash
 
 		# Utils
 		$(func2string remote_project_log)
@@ -148,9 +152,10 @@ function remote_project_writePostReceiveHook() {
 		$(func2string config_get_val)
 		$(func2string ifFileSetVar)
 		$(func2string ifDirSetVar)
+		$(func2string get_realpath)
 
 
-		SCRIPTPATH=\$( cd "\$( dirname "\${BASH_SOURCE[0]}" )" && pwd )
+		SCRIPTPATH="\${PWD}/\${0%/*}";
 
 		# Set some project variables
 		remote_project_setEnvVars "\${SCRIPTPATH%/*/*}"
@@ -164,7 +169,7 @@ function remote_project_writePostReceiveHook() {
 		remote_project_readConfigFile "\${PROJECT_CONFIG}" CONFIG
 
 		# Checkout config-worktree if is given
-		CONF_WORKTREE=\$(config_get_val "\${CONFIG}" 'WORKTREE')
+		CONF_WORKTREE="\$(config_get_val "\${CONFIG}" 'WORKTREE')";
 		if [[ -n \${CONF_WORKTREE} ]]; then
 			remote_project_checkoutWorktree "\${CONF_WORKTREE}"
 			ACTIVE_WORKTREE="\${CONF_WORKTREE}"
@@ -183,7 +188,7 @@ function remote_project_writePostReceiveHook() {
 		# Call post-receive handler from deploy-folder if exists
 		remote_project_callActiveWorktreeDeployHandler "\${PROJECT_PATH}" "\${ACTIVE_WORKTREE}" 'post-receive'
 
-		remote_notify "Project '${PROJECT_NAME}' successfully uberdeployed =)"
+		remote_notify "Post Hook successfully fired"
 		remote_project_log "Deployed"
 	-EOT
 
@@ -294,7 +299,7 @@ function remote_project_callActiveWorktreeDeployHandler() {
 
 
 function remote_notify() {
-	echo -e "\033[33;36m----> ${1}\033[0m";
+	echo "\033[33;36m----> ${1}\033[0m";
 }
 function remote_error() {
 	remote_notify "\033[33;31m${1}";
