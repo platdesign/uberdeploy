@@ -7,9 +7,10 @@ Commands:
 
     create		Create a new project locally and on remote
     init		Create a new project locally
-    Join 		Join an existing project
-    Update 		Update to latest version
+    join 		Join an existing project
+    update 		Update to latest version
     uninstall 		Uninstalls uberdeploy from your machine
+    log			Displays log of current project
 
 Options:
 
