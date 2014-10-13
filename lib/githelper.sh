@@ -8,3 +8,6 @@ git_anyChanges() {
 	[[ -n $(git status --porcelain) ]]
 }
 
+function isGitRepo() {
+	[ -d "${1}/.git" ];
+}

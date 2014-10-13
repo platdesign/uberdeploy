@@ -301,3 +301,18 @@ function config_get_val() {
 	fi
 }
 
+
+function dir_isEmpty() {
+	if [ "$(ls -A $1)" ]; then
+	     return 1;
+	fi
+}
+
+
+function isDir() {
+	[ -d $1 ];
+}
+
+function isFile() {
+	[ -e ${1} ];
+}

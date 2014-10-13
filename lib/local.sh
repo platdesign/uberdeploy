@@ -1,10 +1,13 @@
 #!/bin/sh
 
-
+function project_exists() {
+	[ -e "${1}/.uberdeploy" ];
+}
 
 function calledFromProjectPath() {
-	[ -e "${PWD}/.uberdeploy" ]
+	project_exists ${PWD};
 }
+
 
 
 
@@ -16,12 +19,6 @@ function project_setProjectVars() {
 	PROJECT_PATH="${1}";
 	PROJECT_NAME="${PROJECT_PATH##*/}";
 	PROJECT_CONFIG="${PROJECT_PATH}/.uberdeploy";
-
-	PROJECT_GIT_REMOTE_URL="$(git config --get "remote.${GIT_ORIGIN_NAME}.url")";
-
-	if [[ -n ${PROJECT_GIT_REMOTE_URL} ]]; then
-		PROJECT_SSH_AUTHORITY=$(echo $GIT_REMOTE_URL | sed 's/.*:\/\/\([0-9A-Za-z\-\_\.]*\)\/.*/\1/')
-	fi
 
 }
 

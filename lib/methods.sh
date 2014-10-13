@@ -8,27 +8,49 @@ source ${SCRIPTPATH}/../lib/local.sh
 
 # Initialize a repository only locally
 function init() {
-	# detect project variables and ask for the ones which are not detecable or set
-	if [[ ! ${PROJECTNAME} ]]; then
-		detectProjectVariables $@
+
+	local _PROJECT_PATH="${PWD}";
+
+	# If first parameter is set, use it as projectname
+	if [[ -n ${1} ]]; then
+		_PROJECT_PATH="${PWD}/${1}";
 	fi
 
-	# inititalize git repository if not exist
-	if [ ! -d ${PROJECTPATH}/.git ]; then
-		RES=$(git init ${PROJECTPATH})
-		if [[ $? -gt 0 ]];
-			then
-				echo_error "${RES}";
-				exit 1;
-			else
-				echo_notify "${RES}";
+	# Set project variables
+	project_setProjectVars "${_PROJECT_PATH}";
+
+
+	# Project already exists
+	if project_exists ${PROJECT_PATH}; then
+		if ! input_confirm "Project already exists. Reinitialize?"; then
+			exit 1;
+		fi
+
+	else
+		# Dir exists and isn't empty
+		if isDir ${PROJECT_PATH}; then
+			if ! dir_isEmpty; then
+				if ! input_confirm "Folder exists and isn't empty. Continue?"; then
+					exit 1;
+				fi
+			fi
 		fi
 	fi
 
-	# save config file
-	saveConfigFile
 
-	echo_notify "Project '${PROJECTNAME}' initialized on local machine"
+	# Check if it is an existing repo. Otherwise create it.
+	if ! isGitRepo ${PROJECT_PATH}; then
+		echo_notify "$(git init ${PROJECT_PATH})"
+	fi
+
+	# If config does not exist create it.
+	if ! isFile ${PROJECT_CONFIG}; then
+		echo "" > ${PROJECT_CONFIG};
+		echo_notify "Config created."
+	fi
+
+	# Notify
+	echo_notify "Project '${PROJECT_NAME}' successfully initialized."
 }
 
 
@@ -54,6 +76,8 @@ function initRemote() {
 # Init project locally and on remote
 # This should be used when starting a new empty project
 function create() {
+
+
 
 	initRemote $@
 	init $@
@@ -108,7 +132,7 @@ function join() {
 
 # Destroyes a project
 # 1. on remote
-# 1. on local machine
+# 2. on local machine
 function destroy() {
 
 	if calledFromProjectPath; then
@@ -142,6 +166,7 @@ function destroy() {
 
 		fi
 
+
 		# Let the user confirm what he is doing ;)
 		if input_confirm "Remove project from local machine?"; then
 			if rm -rf "${PROJECT_PATH}"; then
@@ -151,14 +176,15 @@ function destroy() {
 			fi
 		fi
 
-
 	else
 
 		echo_error "Project not found. Move to projects folder.";
 
 	fi
-
 }
+
+
+
 
 
 
