@@ -93,6 +93,7 @@ function input_confirm() {
 	local RES;
 	read -p "${1} (y/n) " -n 1 -r RES
 	echo
+	echo
 	if [[ ${RES} =~ ^[Yy]$ ]]
 		then
 			return 1
@@ -104,15 +105,25 @@ function input_confirm() {
 
 
 function echo_notify() {
-	echo -e "\033[33;32m      ${1}\033[0m";
+	echo ${1} | while read line; do
+		echo -e "\033[33;32m${line}\033[0m";
+	done
 }
 function echo_notify_white() {
-	echo -e "\033[0m      ${1}\033[0m";
+	echo -e "\033[0m${1}\033[0m";
+}
+
+function echo_debug_note() {
+	echo -e ${1} | while read line; do
+		echo -e "\033[0m${line}\033[0m";
+	done
 }
 
 
 function echo_error() {
-	echo_notify "\033[33;31m${1}";
+	echo ${1} | while read line; do
+		echo -e "\033[33;31m${line}\033[0m";
+	done
 }
 
 

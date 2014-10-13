@@ -32,6 +32,25 @@ function createRemoteProject() {
 }
 
 
+function destroyRemoteProject() {
+
+	local NAME="${1}";
+	local SSH_AUTHORITY="${2}";
+
+	COMMAND="
+		$(func2string remote_notify)
+		$(func2string remote_error)
+		$(func2string remote_project_setEnvVars)
+		$(func2string remote_project_destroy)
+
+		remote_project_setEnvVars \${HOME}'/Uberdeploy/${NAME}'
+		remote_project_destroy
+	";
+
+	remote_execute "${SSH_AUTHORITY}" "${COMMAND}" BODY
+
+}
+
 function displayRemoteLog() {
 	local NAME="${1}";
 	local SSH_AUTHORITY="${2}";
@@ -83,6 +102,10 @@ function remote_project_create() {
 	remote_notify "Project '${PROJECT_NAME}' created on remote"
 }
 
+
+
+
+
 function remote_project_reinitialize() {
 	local PROJECTNAME="${1}";
 	remote_project_setEnvVars "${HOME}/Uberdeploy/${PROJECTNAME}"
@@ -97,6 +120,28 @@ function remote_project_reinitialize() {
 
 
 
+
+
+function remote_project_destroy() {
+
+	if [[ -n ${PROJECT_NAME} ]];
+		then
+			if [[ -d ${PROJECT_PATH} ]];
+				then
+					rm -rf "${PROJECT_PATH}";
+
+					# Notify
+					remote_notify "Project '${PROJECT_NAME}' removed";
+				else
+					remote_error "Project not found";
+					error 1
+			fi
+		else
+			remote_error "Project not found";
+			error 1
+	fi
+
+}
 
 
 

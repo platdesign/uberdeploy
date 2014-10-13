@@ -109,8 +109,25 @@ join() {
 
 
 destroy() {
-	echo 'Not implemented yet'
-	echo 'Destroy...' $@
+
+	input_confirm "Would you really destroy this app?"
+	if [[ $? = 0 ]]; then
+		echo_notify "Two heads are better than one. ;)"
+		exit 1;
+	fi
+
+	detectProjectVariables $@
+
+	destroyRemoteProject ${PROJECTNAME} ${SSH_AUTHORITY}
+
+	if [[ $? -gt 0 ]]; then
+		echo_error 'Remote repository could not be destroyed.';
+	fi
+
+	input_confirm "Remove from local machine?"
+	if [[ $? = 1 ]]; then
+		rm -rf "${PROJECTPATH}"
+	fi
 }
 
 
@@ -142,7 +159,7 @@ deploy() {
 			if [[ $? = 1 ]]; then
 				git add --all
 				git commit --quiet -m "${COMMIT_MESSAGE}"
-				echo_notify "Commited: ${COMMIT_MESSAGE}"
+				echo_notify "Committed: ${COMMIT_MESSAGE}"
 			fi
 		else
 			input_confirm "No changes. Create empty commit?"
@@ -150,7 +167,7 @@ deploy() {
 			if [[ $? = 1 ]]; then
 				git add --all
 				git commit --allow-empty -q -m "${COMMIT_MESSAGE}" 2>&1
-				echo_notify "Commited: ${COMMIT_MESSAGE}"
+				echo_notify "Committed: ${COMMIT_MESSAGE}"
 			fi
 	fi
 
@@ -158,19 +175,31 @@ deploy() {
 	# Push to uberspace
 
 
-	git push --porcelain "${GIT_ORIGIN_NAME}" master  2>&1 | while read line; do
+	RES=$(git push --porcelain "${GIT_ORIGIN_NAME}" master 2>&1);
+	RES_CODE=$?;
+
+	echo "$RES" | while read line; do
 		REMOTE=$( echo `echo $line | grep remote` | sed -n -e 's/^.*remote: //p' )
 		if [[ -n ${REMOTE} ]];
 			then
-				echo "$REMOTE";
+				echo -e "$REMOTE";
 		fi
 	done
 
 
-	if [[ $? = 0 ]]; then
+	if [[ ${RES_CODE} -eq 0 ]]; then
 		echo_notify "Project '${PROJECTNAME}' successfully uberdeployed =)"
 	else
-		echo_error 'Error occoured';
+		case ${RES_CODE} in
+			128)
+				echo_error "Remote repository does not appear to exist.";
+				echo_debug_note "You could create it with:\nuberdeploy create";
+			;;
+			*)
+				echo_error "$RES" ;;
+
+		esac
+
 	fi
 }
 
