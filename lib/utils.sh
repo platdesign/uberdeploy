@@ -4,7 +4,7 @@ CONFIGFILENAME=".${TOOLNAME}"
 function readConfigFile() {
 	local CONFIGFILE="${PROJECTPATH}/${CONFIGFILENAME}"
 
-	if [[ ! -n ${CONFIGFILECONTENT} ]]; then
+	if [[ ! -n ${CONFIGFILECONTENT} && -e ${CONFIGFILE} ]]; then
 		CONFIGFILECONTENT=$(cat ${CONFIGFILE})
 	fi
 	local CC=${CONFIGFILECONTENT}
