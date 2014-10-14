@@ -6,7 +6,7 @@ The easiest way to deploy projects to your server.
 	$ cd firstProject
 	$ uberdeploy deploy
 
-All you need is *git*, *ssh*, a server where you can login via ssh and a project which likes to be deployed. ;)
+All you need is *git*, *ssh*, a server where you can login via ssh and a project which likes to be deployed.
 
 ##Install
 
