@@ -1,39 +1,46 @@
 #uberdeploy
 
-A little git-repository-deployment tool for uberspace (e.g.).
+The easiest way to deploy projects to your server.
+
+
+	$ uberdeploy create firstProject
+	$ cd firstProject
+	$ uberdeploy deploy
+
 
 ##Install
 
 **Copy, paste to shell, enter**
 
+The following code downloads `install.sh` which will start a guided installation  on your machine. After that, you are ready to use uberdeploy without any configuration. =)
+	
 	bash -c "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/master/install.sh)"
 
-No configuration required!
 
 ##Example
 
-Go to a directory where you want to place your project
+Go to a folder where you want to place your project
 
-`cd ~/myProjects`
+	$ cd ~/allMyProjects
 
-Initialize a new project with
+Initialize a new project where all configuration will be done for you. Uberdeploy will create a new folder containing your project.
 
-`uberdeploy create myProject`
+	$ uberdeploy create myProject
+	
+Switch to your new project.  
 
-After some questions and a bit of time... switch to new project directory. 
+	$ cd myProject
 
-`cd myProject`
+Make some changes, add files/directories - simply work on your project...
+When you are ready for deployment you only have to execute:
 
-Make some changes, add some files/directories - simply work on your project...
-
-Ready for deployment? Type:
-
-`uberdeploy deploy`
-
-**That's it! =)**
+	$ uberdeploy deploy
 
 
-For a detailed example have a look at [uberdeploy-nodejs-sampleapp](https://github.com/platdesign/uberdeploy-nodejs-sampleapp).
+
+**That's it! =)** Uberdeploy will do the rest for you.
+
+For another example look at [uberdeploy-nodejs-sampleapp](https://github.com/platdesign/uberdeploy-nodejs-sampleapp). This could be used as base for nodejs-applications. Have a special look at the `deploy/post-receive`-file as an approach to handle a service which controls your app.
 
 
 
@@ -86,6 +93,22 @@ For a detailed example have a look at [uberdeploy-nodejs-sampleapp](https://gith
 | -h / --help | Displays the help page. |
 
 
+##.uberdeploy
+Each project has a `.uberdeploy` file. It is a config-file for your project.
+It needs the following style:
+
+**Syntax**
+
+	<KEY> : <VALUE>;
+	or
+	<KEY>: '<VALUE>';
+
+**Supported Options**
+
+| Option | Description | Example
+|:---|:----|:-----|
+| WORKTREE | Specifies a second directory, which will be checked out on remote after each deployment. | `/var/www`
+| RUN | If you have set a `RUN`-command, uberdeploy will create a `service`-file in your remote project folder on each deployment. A `service`-file could be used to controle your app by a service. | `node app.js`
 
 ##Contact##
 
