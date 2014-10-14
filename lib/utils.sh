@@ -316,3 +316,47 @@ function isDir() {
 function isFile() {
 	[ -e ${1} ];
 }
+
+
+
+
+
+
+
+function installLatestVersionFromGithubToLibDir() {
+
+	local LIB_DIR=${1};
+
+	# Create temporary folder (LINUX and OSX supported)
+	TMPDIR=`mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir'`;
+
+
+	TMPTARFILE="${TMPDIR}/update.tar.gz"
+
+	# Get the tarball
+	echo_notify "Downloading..."
+	if ! curl -fsSLo "${TMPTARFILE}" "${REPOSITORY}/tarball/master"; then
+		echo_error "Download failed.";
+		# Remove tmp-folder
+		rm -rf "${TMPDIR}";
+		return 1;
+	fi
+
+
+	# Clear content of lib dir
+	rm -rf "${LIB_DIR}/*";
+
+	# Extract tarball to directory
+	echo_notify "Extracting files"
+	tar -zxf "${TMPTARFILE}" --strip-components 1 -C "${LIB_DIR}"
+
+
+	# Remove temporary folder
+	rm -rf ${TMPDIR};
+	return 0;
+}
+
+
+
+
+

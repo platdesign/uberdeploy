@@ -1,35 +1,34 @@
 #!/bin/bash
 
-DIRNAME='uberdeploy'
-LIB_DIR="/usr/local/lib/${DIRNAME}"
-BIN_DIR="/usr/local/bin/${DIRNAME}"
 
-# Uncomment for testing in development
-#LIB_DIR="${HOME}/installtest/lib/${DIRNAME}"
-#BIN_DIR="${HOME}/installtest/bin/${DIRNAME}"
+echo 'Preparing to install uberdeploy';
+eval "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/master/lib/base.sh)";
+eval "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/master/lib/utils.sh)";
 
-REPOSITORY="https://github.com/platdesign/uberdeploy"
+echo_notify "Welcome to uberdeploy =)";
 
+# Ask for INSTALL_LIB_PATH
+input_default "Where would you like to install?" "/usr/local/lib" INSTALL_LIB_PATH
 
-
-if [[ ! -d ${LIB_DIR} ]]; then
-
-	echo "Downloading repository"
-	mkdir -p ${LIB_DIR}
-
-	# Get the tarball
-	TMPTARFILE="${LIB_DIR}/${DIRNAME}.tar.gz"
-	curl -fsSLo TMPTARFILE ${REPOSITORY}/tarball/master
-
-	# Extract tarball to directory
-	echo "Extracting files"
-	tar -zxf TMPTARFILE --strip-components 1 -C ${LIB_DIR}
-
-	# Remove the tarball
-	rm -rf TMPTARFILE
-
+if ! mkdir -p "${INSTALL_LIB_PATH}"; then
+	echo_error "Can't create directory (${INSTALL_LIB_PATH})";
+	exit 1;
 fi
 
+if input_confirm "Create link to '${INSTALL_LIB_PATH%/*}/bin/${TOOLNAME}'?"; then
+	INSTALL_BIN_PATH="${INSTALL_LIB_PATH%/*}/bin/${TOOLNAME}";
+fi
 
-# Linking the main file to the bin dir
-ln -fs ${LIB_DIR}/bin/uberdeploy.sh ${BIN_DIR}
+if ! installLatestVersionFromGithubToLibDir "${INSTALL_LIB_PATH}"; then
+	echo_error "Installation failed.";
+	exit 1;
+fi
+
+if [[ -n "${INSTALL_BIN_PATH}" ]]; then
+
+	# Linking the main file to the bin dir
+	ln -fs "${INSTALL_LIB_PATH}/bin/uberdeploy.sh" "${INSTALL_BIN_PATH}"
+	echo_notify "Link created (${INSTALL_BIN_PATH})";
+fi
+
+echo_notify "Installation successfully completed =)";

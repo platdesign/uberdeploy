@@ -268,32 +268,22 @@ function help() {
 # Updates the current installation of uberdeploy on your machine
 function update() {
 
-	check_version ${VERSION};	STATUS=$?
-
+	#check_version ${VERSION};	STATUS=$?
+	STATUS=2
 	case ${STATUS} in
-		0) echo "Already latest version" ;;
+		0) echo_notify "Already latest version" ;;
 		2)
-			local LIB_DIR=${SCRIPT%/*/*}
+			local LIB_DIR="${SCRIPTPATH%/*}"
 
-			if [[ -d ${LIB_DIR} ]]; then
-				rm -rf ${LIB_DIR}
+			if [ -e "${LIB_DIR}/bin/uberdeploy.sh" ]; then
+
+				if ! installLatestVersionFromGithubToLibDir ${LIB_DIR}; then
+					echo_error "Update failed.";
+					exit 1;
+				fi
+
+				echo_notify "Successfully updated =)";
 			fi
-
-			echo "Downloading repository"
-			mkdir -p ${LIB_DIR}
-
-			# Get the tarball
-			TMPTARFILE="${LIB_DIR}/${TOOLNAME}.tar.gz"
-			curl -fsSLo TMPTARFILE ${REPOSITORY}/tarball/master
-
-			# Extract tarball to directory
-			echo "Extracting files"
-			tar -zxf TMPTARFILE --strip-components 1 -C ${LIB_DIR}
-
-			# Remove the tarball
-			rm -rf TMPTARFILE
-
-			echo "Ready!"
 
 		;;
 
