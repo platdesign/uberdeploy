@@ -53,14 +53,14 @@ function init() {
 
 	# Create deploy folder if not exists
 	if ! isDir "${PROJECT_PATH}/deploy"; then
-		mkdir -p "deploy";
+		mkdir -p "${PROJECT_PATH}/deploy";
 		echo_notify "Deploy folder created."
 	fi
 
 
 	# Create post-receive hook if not exists
 	if ! isFile "${PROJECT_PATH}/deploy/post-receive"; then
-		echo "#!/bin/bash" > deploy/post-receive
+		echo "#!/bin/bash" > "${PROJECT_PATH}/deploy/post-receive"
 		echo_notify "Added hook: deploy/post-receive"
 	fi
 
@@ -110,29 +110,6 @@ function create() {
 }
 
 
-# Clone an existing repository to your local machine
-function join() {
-
-	input_required "Projectname" PROJECTNAME
-	input_required "SSH authority (e.g. user@server.uberspace.de)" SSH_AUTHORITY
-	input_default "Location" "./${PROJECTNAME}" PROJCTPATH
-
-	GIT_ORIGIN_URL="ssh://${SSH_AUTHORITY}/home/plati/Uberdeploy/${PROJECTNAME}/bare.git"
-
-	git clone ${GIT_ORIGIN_URL} ${PROJCTPATH}
-
-	cd ${PROJCTPATH}
-
-	detectProjectVariables
-
-	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
-		git remote add ${GIT_ORIGIN_NAME} ${GIT_ORIGIN_URL}
-	fi
-}
-
-
-
-
 
 # Destroyes a project
 # 1. on remote
@@ -152,18 +129,21 @@ function destroy() {
 		project_setProjectVars ${PWD};
 
 		# Collect project variables (config,git-config)
-		project_collectProjectVars ${PWD};
+		project_collectProjectVars ${PROJECT_PATH};
 
 
 		# If PROJECT_SSH_AUTHORITY is set
 		if project_ensureVars 'NAME' 'SSH_AUTHORITY'; then
 
 			# Let the user confirm what he is doing ;)
-			if input_confirm "Remove project from remote '${PROJECT_SSH_AUTHORITY}'?"; then
+			if input_confirm "Remove project from remote '${PROJECT_GIT_REMOTE_NAME}'?"; then
 
 				# Destroy the remote project
 				if ! destroyRemoteProject "${PROJECT_NAME}" "${PROJECT_SSH_AUTHORITY}"; then
 					echo_error "Remote repository couldn't be destroyed.";
+				else
+					# Remove remote from git repository
+					git remote rm "${PROJECT_GIT_REMOTE_NAME}";
 				fi
 
 			fi
@@ -182,86 +162,104 @@ function destroy() {
 
 	else
 
-		echo_error "Project not found. Move to projects folder.";
+		echo_error "Project not found. Move to a projects folder.";
 
 	fi
 }
 
 
-
-
-
-
+# Deploy from a projects folder
 function deploy() {
 
-	if [[ ! ${PROJECTNAME} ]]; then
-		detectProjectVariables $@
-	fi
+	if calledFromProjectPath; then
 
-	if [[ ! -d .git ]]; then
-		echo_error "Can't deploy. No repository found."
-		exit 1
-	fi
+		# Set project variables
+		project_setProjectVars ${PWD};
 
-	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
-		echo_error "Missing remote '${GIT_ORIGIN_NAME}'"
-		exit 1
-	fi
+		# Collect project variables (config,git-config)
+		project_collectProjectVars ${PROJECT_PATH};
 
+		local _COMMIT_MESSAGE="Deploy by ${USER} from ${HOSTNAME}"
 
-	COMMIT_MESSAGE="Deploy by ${USER} from ${HOSTNAME}"
-
-
-	# If repository has uncomitted files
-	if git_anyChanges;
-		then
-			input_confirm "Commit changes?"
-			if [[ $? = 1 ]]; then
+		# If repository has uncomitted files
+		if git_anyChanges; then
+			if input_confirm "Commit changes?"; then
 				git add --all
-				git commit --quiet -m "${COMMIT_MESSAGE}"
-				echo_notify "Committed: ${COMMIT_MESSAGE}"
+				git commit --quiet -m "${_COMMIT_MESSAGE}"
+				echo_notify "Committed: ${_COMMIT_MESSAGE}"
 			fi
 		else
-			input_confirm "No changes. Create empty commit?"
-
-			if [[ $? = 1 ]]; then
+			if input_confirm "No changes. Create empty commit?"; then
 				git add --all
-				git commit --allow-empty -q -m "${COMMIT_MESSAGE}" 2>&1
-				echo_notify "Committed: ${COMMIT_MESSAGE}"
+				git commit --allow-empty -q -m "${_COMMIT_MESSAGE}" 2>&1
+				echo_notify "Committed: ${_COMMIT_MESSAGE}"
 			fi
-	fi
-
-
-	# Push to uberspace
-
-
-	RES=$(git push --porcelain "${GIT_ORIGIN_NAME}" master 2>&1);
-	RES_CODE=$?;
-
-	echo "$RES" | while read line; do
-		REMOTE=$( echo `echo $line | grep remote` | sed -n -e 's/^.*remote: //p' )
-		if [[ -n ${REMOTE} ]];
-			then
-				echo -e "$REMOTE";
 		fi
-	done
+
+		echo_notify "Pushing to ${PROJECT_GIT_REMOTE_NAME}"
+
+		# Push to remote
+		RES=$(git push --porcelain "${PROJECT_GIT_REMOTE_NAME}" master 2>&1);
+		RES_CODE=$?;
+
+		echo "$RES" | while read line; do
+			REMOTE=$( echo `echo $line | grep remote` | sed -n -e 's/^.*remote: //p' )
+			if [[ -n ${REMOTE} ]]; then
+				echo -e "$REMOTE";
+			fi
+		done
 
 
-	if [[ ${RES_CODE} -eq 0 ]]; then
-		echo_notify "Project '${PROJECTNAME}' successfully uberdeployed =)"
+		if [[ ${RES_CODE} -eq 0 ]]; then
+			echo_notify "Project '${PROJECT_NAME}' successfully uberdeployed =)"
+		else
+			case ${RES_CODE} in
+				128)
+					echo_error "Remote repository does not appear to exist.";
+					echo_debug_note "You could create it with:\nuberdeploy create";
+				;;
+				*) echo_error "$RES" ;;
+			esac
+
+		fi
+
 	else
-		case ${RES_CODE} in
-			128)
-				echo_error "Remote repository does not appear to exist.";
-				echo_debug_note "You could create it with:\nuberdeploy create";
-			;;
-			*)
-				echo_error "$RES" ;;
-
-		esac
-
+		echo_error "Project not found. Move to a projects folder.";
 	fi
 }
+
+
+# Display remote log of project
+function displayLog() {
+	if calledFromProjectPath; then
+
+		# Set project variables
+		project_setProjectVars ${PWD};
+
+		# Collect project variables (config,git-config)
+		project_collectProjectVars ${PROJECT_PATH};
+
+		if project_ensureVars 'NAME' 'SSH_AUTHORITY'; then
+			displayRemoteLog "${PROJECT_NAME}" "${PROJECT_SSH_AUTHORITY}";
+		fi
+
+	else
+		echo_error "Project not found. Move to a projects folder.";
+	fi
+}
+
+
+# Display help/man page
+function help() {
+	echo_notify "${TOOLNAME}";
+	cat ${SCRIPTPATH}/../lib/help.txt
+	check_version_and_hint ${VERSION}
+}
+
+
+
+
+
 
 
 
@@ -311,19 +309,15 @@ function uninstall() {
 }
 
 
-
-
-function help() {
-
-	cat ${SCRIPTPATH}/../lib/help.txt
-
-	check_version_and_hint ${VERSION}
+# Clone an existing repository to your local machine
+function join() {
+	echo_error "Not implemented yet =)"
 }
 
 
 
-function displayLog() {
-	detectProjectVariables $@
-	displayRemoteLog ${PROJECTNAME} ${SSH_AUTHORITY}
-}
+
+
+
+
 
