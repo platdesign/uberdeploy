@@ -2,32 +2,32 @@
 
 The easiest way to deploy projects to your server.
 
-
 	$ uberdeploy create firstProject
 	$ cd firstProject
 	$ uberdeploy deploy
 
+All you need is *git*, *ssh*, a server where you can login via ssh and a project which likes to be deployed. ;)
 
 ##Install
 
-**Copy, paste to shell, enter**
+**Copy & paste to shell & enter**
 
-The following code downloads `install.sh` which will start a guided installation  on your machine. After that, you are ready to use uberdeploy without any configuration. =)
+The following code downloads `install.sh` which will start a guided installation  on your machine. After that, you are ready to use uberdeploy. =)
 	
 	bash -c "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/master/install.sh)"
 
 
 ##Example
 
-Go to a folder where you want to place your project
+Switch to a folder where you want to place your project
 
 	$ cd ~/allMyProjects
 
-Initialize a new project where all configuration will be done for you. Uberdeploy will create a new folder containing your project.
+Initialize a new project.
 
 	$ uberdeploy create myProject
 	
-Switch to your new project.  
+Switch to your new project.
 
 	$ cd myProject
 
@@ -94,8 +94,7 @@ For another example look at [uberdeploy-nodejs-sampleapp](https://github.com/pla
 
 
 ##.uberdeploy
-Each project has a `.uberdeploy` file. It is a config-file for your project.
-It needs the following style:
+Each project has a file `.uberdeploy` where you can configure and specify the behaviour of your project on the remote server.
 
 **Syntax**
 
@@ -107,8 +106,9 @@ It needs the following style:
 
 | Option | Description | Example
 |:---|:----|:-----|
-| WORKTREE | Specifies a second directory, which will be checked out on remote after each deployment. | `/var/www`
-| RUN | If you have set a `RUN`-command, uberdeploy will create a `service`-file in your remote project folder on each deployment. A `service`-file could be used to controle your app by a service. | `node app.js`
+| WORKTREE | Defines a second directory, which will be checked out after each deployment on the remote server. | `/var/www`
+| RUN | If you have set a `RUN`-command, uberdeploy will create a `service`-file in your remote project folder on each deployment. A `service`-file could be used to controle your app by a system-service. | `node app.js`
+
 
 ##Contact##
 
