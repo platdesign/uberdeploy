@@ -344,7 +344,9 @@ function installLatestVersionFromGithubToLibDir() {
 
 
 	# Clear content of lib dir
-	rm -rf "${LIB_DIR}/*";
+	if isFile "${LIB_DIR}/bin/uberdeploy.sh"; then
+		rm -rf "${LIB_DIR}/*";
+	fi
 
 	# Extract tarball to directory
 	echo_notify "Extracting files"
