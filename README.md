@@ -4,9 +4,9 @@ A little git-repository-deployment tool for uberspace (e.g.).
 
 ##Install
 
-**OSX**
+**Copy, paste to shell, enter**
 
-`bash -c "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/master/installOSX.sh)"`
+	bash -c "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/master/install.sh)"
 
 No configuration required!
 
@@ -33,45 +33,50 @@ Ready for deployment? Type:
 **That's it! =)**
 
 
+For a detailed example have a look at [uberdeploy-nodejs-sampleapp](https://github.com/platdesign/uberdeploy-nodejs-sampleapp).
+
+
 
 ##Commands
-- **init**
-
-	*Example:* `uberdeploy init` or `uberdeploy init myApp`
-	
-	Creates a new repository and adds a `.uberdeploy`-config file.
-
 - **create**
 
 	*Example:* `uberdeploy create` or `uberdeploy create myApp`
 	
-	After initializing a new repository with `init` a remote (bare) repository will be created with your given `SSH-Authority`.
+	Guides you through the process of creating a new project folder.
+
 
 - **deploy**
 	
 	*Example:* `uberdeploy deploy`
 	
-	Adds all files to the stage with `git add --all`, commits the stage and pushes the repository to remote `uberspace`. After push the workingtree will be checked out on the remote server.
+	Deployes your project to given remote server by commiting changes, pushing the repository, checking out the worktree and calling `deploy/post-receive` from your project files. `deploy/post-receive` gives you the opportunity to customize your deployment-process.
+
 
 - **destroy**
 
 	*Example:* `uberdeploy destroy`
 	
-	Destroyes the current project.
+	Destroyes a project guided.
 
+- **init**
+
+	*Example:* `uberdeploy init` or `uberdeploy init myApp`
+	
+	Creates a new project folder without remote-connection.
 
 	
 - **update**
 
 	*Example:* `uberdeploy update`
 
-	Checks for new version of uberdeploy and updates your local machine to the latest one.
+	Checks for a new release of uberdeploy and updates your local version.
 	
-- **join**
+- **log**
 
-	*Example:* `uberdeploy join`
+	*Example:* `uberdeploy log`
 	
-	Asks for projectname and SSH-Authority. Clones the remote repository to your local machine and adds remote `uberspace`.
+	Displayes projects log file from remote.
+
 	
 	
 ##Options

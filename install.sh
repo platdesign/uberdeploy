@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-echo 'Preparing to install uberdeploy';
+echo 'Preparing to install uberdeploy...';
 eval "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/master/lib/base.sh)";
 eval "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/master/lib/utils.sh)";
 
@@ -32,3 +32,5 @@ if [[ -n "${INSTALL_BIN_PATH}" ]]; then
 fi
 
 echo_notify "Installation successfully completed =)";
+echo -e "\nLet's have a look at the man page (uberdeploy -h/--help)";
+uberdeploy -h
