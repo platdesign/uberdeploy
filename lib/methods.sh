@@ -268,8 +268,8 @@ function help() {
 # Updates the current installation of uberdeploy on your machine
 function update() {
 
-	#check_version ${VERSION};	STATUS=$?
-	STATUS=2
+	check_version ${VERSION};	STATUS=$?
+
 	case ${STATUS} in
 		0) echo_notify "Already latest version" ;;
 		2)
