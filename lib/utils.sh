@@ -164,7 +164,7 @@ function vercomp () {
 function check_version() {
 	RES=$(curl -s -H "Accept: application/json" https://api.github.com/repos/platdesign/${TOOLNAME}/tags?per_page=1);
 
-	REGEX='"name":.*"([0-9]\.[0-9]\.[0-9])"'
+	REGEX='"name":.*"([0-9A-Za-z]*\.[0-9A-Za-z]*\.[0-9A-Za-z]*)"'
 
 	if [[ ${RES} =~ ${REGEX} ]]; then
 		REMOTE_VERSION=${BASH_REMATCH[1]}
