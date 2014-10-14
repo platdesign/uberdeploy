@@ -17,8 +17,9 @@ if ! mkdir -p "${INSTALL_LIB_PATH}"; then
 	exit 1;
 fi
 
-if input_confirm "Create link to '${INSTALL_LIB_PATH%/*}/bin/${TOOLNAME}'?"; then
-	INSTALL_BIN_PATH="${INSTALL_LIB_PATH%/*/*}/bin/${TOOLNAME}";
+_DEFAULT_BIN_PATH="${INSTALL_LIB_PATH%/*/*}/bin/${TOOLNAME}";
+if input_confirm "Create link to '${_DEFAULT_BIN_PATH}'?"; then
+	INSTALL_BIN_PATH="${_DEFAULT_BIN_PATH}";
 fi
 
 if ! installLatestVersionFromGithubToLibDir "${INSTALL_LIB_PATH}"; then
