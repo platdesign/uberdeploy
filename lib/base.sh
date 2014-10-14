@@ -3,7 +3,7 @@
 
 TOOLNAME='uberdeploy';
 REPOSITORY="https://github.com/platdesign/${TOOLNAME}";
-VERSION="0.0.11a";
+VERSION="0.0.12";
 
 
 
