@@ -7,8 +7,10 @@ eval "$(curl -fsSL https://raw.githubusercontent.com/platdesign/uberdeploy/maste
 
 echo_notify "Welcome to uberdeploy =)";
 
+DEFAULT_LIB_PATH="/usr/local/lib/${TOOLNAME}"
+
 # Ask for INSTALL_LIB_PATH
-input_default "Where would you like to install?" "/usr/local/lib" INSTALL_LIB_PATH
+input_default "Where would you like to install?" "${DEFAULT_LIB_PATH}" INSTALL_LIB_PATH
 
 if ! mkdir -p "${INSTALL_LIB_PATH}"; then
 	echo_error "Can't create directory (${INSTALL_LIB_PATH})";
