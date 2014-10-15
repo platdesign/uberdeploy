@@ -14,25 +14,24 @@ function remote_project_displayLog() {
 function remote_project_create() {
 	local provision="${1}";
 
-	if isDir "${PROJECT_PATH}";
-		then
-			if [[ ! $provision ]]; then
-				echo_error "Project already exists";
-				error 1
-			else
-				remote_project_provision
-				remote_project_log "Provisioned"
-
-				# Notify
-				echo_notify "Project '${PROJECT_NAME}' created on remote"
-			fi
+	if isDir "${PROJECT_PATH}";	then
+		if [[ ! $provision ]]; then
+			echo_error "Project already exists";
+			error 1
 		else
-			# Create new repo
 			remote_project_provision
-			remote_project_log "Created"
+			remote_project_log "Provisioned"
 
 			# Notify
-			echo_notify "Project '${PROJECT_NAME}' created on remote"
+			echo_notify "Project '${PROJECT_NAME}' provisioned"
+		fi
+	else
+		# Create new repo
+		remote_project_provision
+		remote_project_log "Created"
+
+		# Notify
+		echo_notify "Project '${PROJECT_NAME}' created on remote"
 	fi
 }
 
@@ -53,8 +52,6 @@ function remote_project_provision() {
 	# Create post-receive-hook in bare-repo
 	remote_project_writePostReceiveHook "${BARE}"
 
-	# Notify
-	echo_notify "Project '${PROJECT_NAME}' reinitialized on remote"
 }
 
 
