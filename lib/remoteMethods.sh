@@ -37,7 +37,6 @@ function createRemoteProject() {
 
 	remote_execute "${SSH_AUTHORITY}" "${COMMAND}"
 	return $?;
-
 }
 
 
@@ -89,7 +88,7 @@ function displayRemoteLog() {
 			isString \
 		)
 
-		remote_project_setEnvVars \${HOME}'/Uberdeploy/${NAME}'
+		remote_project_setEnvVars '${NAME}'
 		remote_project_displayLog
 	";
 

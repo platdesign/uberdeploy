@@ -29,8 +29,6 @@ if [ -e ${SCRIPTPATH}/../lib/base.sh ];
 				init ${@/%${1}*} ;;
 			create)
 				create ${@/%${1}*} ;;
-			join)
-				join ${@/%${1}*} ;;
 			destroy)
 				destroy ${@/%${1}*} ;;
 			deploy)
