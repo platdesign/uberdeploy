@@ -11,8 +11,7 @@ source ${SCRIPTPATH}/../lib/local.sh
 function init() {
 
 	if [[ ! $1 == -* ]]; then
-		local _PROJECT_NAME=$1;
-		shift;
+		PROJECT_NAME=$1;
 	fi
 
 	for opt in $@; do
@@ -24,19 +23,20 @@ function init() {
 
 
 
+
 	# If first parameter is set, use it as projectname
-	if isString "${_PROJECT_NAME}"; then
-		local _PROJECT_PATH="${PWD}/${_PROJECT_NAME}";
+	if isString "${PROJECT_NAME}"; then
+		PROJECT_PATH="${PWD}/${PROJECT_NAME}";
 	else
-		local _PROJECT_PATH="${PWD}";
+		PROJECT_PATH="${PWD}";
 	fi
 
 	# Set project variables
-	project_setProjectVars "${_PROJECT_PATH}";
+	project_setProjectVars "${PROJECT_PATH}";
 
 
 	# Project already exists
-	if project_exists ${PROJECT_PATH}; then
+	if project_exists "${PROJECT_PATH}"; then
 
 		if [[ ! $flag__provision ]]; then
 			if [[ ! $flag__provision_remote ]]; then
@@ -98,8 +98,7 @@ function init() {
 function create() {
 
 	if [[ ! $1 == -* ]]; then
-		local _PROJECT_NAME=$1;
-		shift;
+		PROJECT_NAME=$1;
 	fi
 
 	for opt in $@; do
