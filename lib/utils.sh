@@ -1,71 +1,5 @@
 #!/bin/bash
 
-CONFIGFILENAME=".${TOOLNAME}"
-function readConfigFile() {
-	local CONFIGFILE="${PROJECTPATH}/${CONFIGFILENAME}"
-
-	if [[ ! -n ${CONFIGFILECONTENT} && -e ${CONFIGFILE} ]]; then
-		CONFIGFILECONTENT=$(cat ${CONFIGFILE})
-	fi
-	local CC=${CONFIGFILECONTENT}
-
-	SSH_AUTHORITY=$(config_get_val "${CC}" SSH_AUTHORITY)
-	WORKTREE=$(config_get_val "${CC}" WORKTREE)
-	_CONFIG_RUN=$(config_get_val "${CC}" RUN)
-}
-function saveConfigFile() {
-	local CONFIGFILE="${PROJECTPATH}/${CONFIGFILENAME}"
-
-	echo "SSH_AUTHORITY: ${SSH_AUTHORITY};" > ${CONFIGFILE}
-
-	if [[ -n ${WORKTREE} ]]; then
-		echo "WORKTREE: ${WORKTREE};" >> ${CONFIGFILE}
-	fi
-
-	if [[ -n ${_CONFIG_RUN} ]]; then
-		echo "RUN: ${_CONFIG_RUN};" >> ${CONFIGFILE}
-	fi
-
-}
-
-
-# Default variables
-GIT_ORIGIN_NAME=${TOOLNAME};
-
-function detectProjectVariables() {
-
-	# Detect project name
-	if [[ -n ${1} ]]
-		then
-			PROJECTPATH="${PWD}/${1}"
-			PROJECTNAME="${1}"
-		else
-			PROJECTPATH="${PWD}"
-			PROJECTNAME="${PWD##*/}"
-	fi
-
-	# Store variables in temp-variables to prevent that they will be overwritten by config-file
-	local _PROJECTPATH=${PROJECTPATH}
-	local _PROJECTNAME=${PROJECTNAME}
-
-	# Read the config file of the project
-	readConfigFile
-
-	# Set the temporary variables to the real ones back
-	PROJECTPATH=${_PROJECTPATH}
-	PROJECTNAME=${_PROJECTNAME}
-
-
-
-	# Ask for SSH_AUTHORITY if necessary
-	if [[ ! -n ${SSH_AUTHORITY} ]];
-		then input_required "SSH authority (e.g. user@server.uberspace.de) " SSH_AUTHORITY
-	fi
-
-}
-
-
-
 
 function input() {
 	local RES;
@@ -88,7 +22,6 @@ function input_default() {
 	eval "${3}=${RES}"
 }
 
-
 function input_confirm() {
 
 	while true; do
@@ -101,29 +34,72 @@ function input_confirm() {
 	done
 }
 
+function type_exists() {
+	isString $(type -t ${1})
+}
+
+
+
+
+
+
 
 
 function echo_notify() {
-	echo ${1} | while read line; do
-		echo -e "\033[33;32m${line}\033[0m";
-	done
-}
-function echo_notify_white() {
-	echo -e "\033[0m${1}\033[0m";
-}
+	if isString $1; then
+		echo -e "\033[33;32m${1}\033[0m";
+		return 0;
+	fi
 
-function echo_debug_note() {
-	echo -e ${1} | while read line; do
-		echo -e "\033[0m${line}\033[0m";
+	while read -r line; do
+		${FUNCNAME[0]} "$line";
 	done
 }
 
 
 function echo_error() {
-	echo ${1} | while read line; do
-		echo -e "\033[33;31m${line}\033[0m";
+	if isString $1; then
+		echo -e "\033[33;31m${1}\033[0m";
+		return 0;
+	fi
+
+	while read -r line; do
+		${FUNCNAME[0]} "$line";
 	done
 }
+
+
+function echo_remote_notify() {
+	if isString $1; then
+		echo -e "\033[33;33m───➤  ${1}\033[0m";
+		return 0;
+	fi
+
+	while read -r line; do
+		${FUNCNAME[0]} "$line";
+	done
+}
+
+function echo_remote_error() {
+	if isString $1; then
+		echo -e "\033[33;31m───➤  ${1}\033[0m";
+		return 0;
+	fi
+
+	while read -r line; do
+		${FUNCNAME[0]} "$line";
+	done
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -159,8 +135,6 @@ function vercomp () {
     return 0
 }
 
-
-
 function check_version() {
 	RES=$(curl -s -H "Accept: application/json" https://api.github.com/repos/platdesign/${TOOLNAME}/tags?per_page=1);
 
@@ -172,7 +146,6 @@ function check_version() {
 		vercomp ${1} ${REMOTE_VERSION}
 		return $?
 	fi
-
 }
 
 function check_version_and_hint() {
@@ -195,111 +168,95 @@ function check_version_and_hint() {
 
 
 
+
+
+
 function func2string() {
-	local FNAME=${1};
-	echo -e "$(typeset -f ${FNAME})";
+	for FNAME in $@; do
+		echo -e "$(typeset -f ${FNAME})";
+	done
 }
 
 
 
-remote_execute() {
+function remote_execute() {
 
-	local SEPERATOR='-------ENDOFREQUEST-------'
+	local __HEADERSFILE=$(mktemp 2>/dev/null || mktemp -t 'mytmpdir');
 
-	local __RES;
+	( ssh "${1}" 'bash -s' <<--SSH-END
+			#!/usr/bin/env bash
+			exec 2>&1
 
+			$(func2string func2string echo_error remote_notify)
 
-	echo_notify "Connecting to '${1}'";
-	__RES=$(
-		exec 2>&1
-		ssh "${1}" 'bash -s' <<--SSH-END
-			#!/bin/sh
-
-			$(func2string func2string)
-			function request_response() {
-				echo ${SEPERATOR}
-				echo -e "\${RES_HEADER}"
+			function echo_notify() {
+				remote_notify "\$@";
 			}
+
 			function error() {
-				request_response
 				exit \$(( \${1} + 100 ));
 			}
 			function setHeader() {
 				local FORMAT="\${1}:\"\${2}\";";
 
-				RES_HEADER="\${RES_HEADER}\${FORMAT}";
+				echo "[HEADER:\${RES_HEADER}\${FORMAT}]";
 			}
+
 			# Execute given commands
 			${2}
 
-			# Send data to client
-			request_response
-
 		-SSH-END
-	);
-	__RESCODE=${?};
 
+	) | while read line; do
+
+		local REGEX='\[HEADER:(.*)\]'
+
+		if [[ ${line} =~ ${REGEX} ]]; then
+			echo ${BASH_REMATCH[1]} >> "${__HEADERSFILE}";
+		else
+			echo $line
+		fi
+
+	done | echo_remote_notify;
+
+	local __RESCODE=${PIPESTATUS[0]};
+
+
+	REMOTE_EXECUTE_HEADER="$(cat "${__HEADERSFILE}")";
+	rm $__HEADERSFILE;
 
 	if [ \( ${__RESCODE} -gt 0 \) -a \( ${__RESCODE} -lt 100 \) -o \( ${__RESCODE} -eq 255 \) ]; then
 		echo_error "${__RES}"
 		return 1;
 	fi
 
-
-	REMOTE_EXECUTE_BODY="${__RES%%${SEPERATOR}*}"
-	REMOTE_EXECUTE_HEADER="${__RES##*${SEPERATOR}}"
-	REMOTE_EXECUTE_STATUS=$?
-
-
-	# Assign Body to variable if given
-	if [[ -n ${3} ]]; then
-		eval "${3}='${REMOTE_EXECUTE_BODY}'"
-	fi
-
 	# Assign Header to variable if given
-	if [[ -n ${4} ]]; then
-		eval "${4}='${REMOTE_EXECUTE_HEADER}'"
+	if [[ -n ${3} ]]; then
+		eval "${3}='${REMOTE_EXECUTE_HEADER}'"
 	fi
 
-	if [[ -n ${REMOTE_EXECUTE_BODY} ]]; then
-		echo -e "${REMOTE_EXECUTE_BODY}\c"
-	fi
-
-	return $__RESCODE;
+	return ${__RESCODE};
 }
 
 
+
+
 function ifFileSetVar() {
-	local FILE="${1}";
-	if [ -e ${FILE} ];
-		then
-			eval "${2}='${3}'";
-		else
-			eval "${2}='${4}'";
+	if isFile "${1}"; then
+		eval "${2}='${3}'";
+	else
+		eval "${2}='${4}'";
 	fi
 }
 
 function ifDirSetVar() {
-	local FILE="${1}";
-	if [ -d ${FILE} ];
-		then
-			eval "${2}='${3}'";
-		else
-			eval "${2}='${4}'";
+	if isDir "${1}"; then
+		eval "${2}='${3}'";
+	else
+		eval "${2}='${4}'";
 	fi
 }
 
-
-function config_get_val() {
-	local __CONF="${1}";
-	local KEY=${2};
-
-	local REGEX=${KEY}'[[:space:][:space:]]*:[[:space:]]*["]?(.[^";]*)["]?[[:space:]]*[;]'
-
-	if [[ ${__CONF} =~ ${REGEX} ]]; then
-		echo ${BASH_REMATCH[1]}
-	fi
-}
 
 
 function dir_isEmpty() {
@@ -316,6 +273,16 @@ function isDir() {
 function isFile() {
 	[ -e ${1} ];
 }
+
+function isString() {
+	[[ -n ${1} ]];
+}
+
+
+
+
+
+
 
 
 

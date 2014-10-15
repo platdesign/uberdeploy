@@ -41,6 +41,8 @@ if [ -e ${SCRIPTPATH}/../lib/base.sh ];
 				uninstall ${@/%${1}*} ;;
 			log)
 				displayLog ${@/%${1}*} ;;
+			run)
+				runProject ${@/%${1}*} ;;
 			-h|--help|'')
 				help ;;
 			-v|--version)

@@ -10,6 +10,17 @@ function calledFromProjectPath() {
 
 
 
+function config_get_val() {
+	local __CONF="${1}";
+	local KEY=${2};
+
+	local REGEX=${KEY}'[[:space:][:space:]]*:[[:space:]]*["]?(.[^";]*)["]?[[:space:]]*[;]'
+
+	if [[ ${__CONF} =~ ${REGEX} ]]; then
+		echo ${BASH_REMATCH[1]}
+	fi
+}
+
 
 
 
@@ -72,3 +83,13 @@ function project_loadConfigVar() {
 		return 1;
 	fi
 }
+
+
+
+
+
+function uberdeploy_getConfigValue() {
+	echo $(config_get_val "${PROJECT_CONFIG_CONTENT}" "${1}");
+}
+
+

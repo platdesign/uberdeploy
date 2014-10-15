@@ -6,14 +6,29 @@ source ${SCRIPTPATH}/../lib/remoteMethods.sh
 
 source ${SCRIPTPATH}/../lib/local.sh
 
+
 # Initialize a project locally only
 function init() {
 
-	local _PROJECT_PATH="${PWD}";
+	if [[ ! $1 == -* ]]; then
+		local _PROJECT_NAME=$1;
+		shift;
+	fi
+
+	for opt in $@; do
+		case $opt in
+			--provision) local flag__provision=true ;;
+			--provision-remote) local flag__provision_remote=true ;;
+		esac
+	done
+
+
 
 	# If first parameter is set, use it as projectname
-	if [[ -n ${1} ]]; then
-		_PROJECT_PATH="${PWD}/${1}";
+	if isString "${_PROJECT_NAME}"; then
+		local _PROJECT_PATH="${PWD}/${_PROJECT_NAME}";
+	else
+		local _PROJECT_PATH="${PWD}";
 	fi
 
 	# Set project variables
@@ -22,9 +37,16 @@ function init() {
 
 	# Project already exists
 	if project_exists ${PROJECT_PATH}; then
-		if ! input_confirm "Project already exists. Reinitialize?"; then
-			exit 1;
+
+		if [[ ! $flag__provision ]]; then
+			if [[ ! $flag__provision_remote ]]; then
+				echo_error 'Project already exists. (You can reinitialize with --provision or --provision-remote)';
+				exit 1;
+			fi
 		fi
+
+		# Collect project variables (config,git-config)
+		project_collectProjectVars ${PROJECT_PATH};
 
 	else
 		# Dir exists and isn't empty
@@ -40,7 +62,7 @@ function init() {
 
 	# Check if it is an existing repo. Otherwise create it.
 	if ! isGitRepo ${PROJECT_PATH}; then
-		echo_notify "$(git init ${PROJECT_PATH})"
+		git init ${PROJECT_PATH} | echo_notify
 	fi
 
 
@@ -75,20 +97,35 @@ function init() {
 # This should be used when starting a new empty project
 function create() {
 
+	if [[ ! $1 == -* ]]; then
+		local _PROJECT_NAME=$1;
+		shift;
+	fi
+
+	for opt in $@; do
+		case $opt in
+			--provision-remote) local flag__provision_remote=true ;;
+		esac
+	done
+
+
 	# Call init with same paramters
 	init $@
 
 	# Collect project variables (config,git-config)
 	project_collectProjectVars ${PROJECT_PATH};
 
-
 	# Ask for PROJECT_SSH_AUTHORITY if necessary
 	if ! project_ensureVars 'SSH_AUTHORITY'; then
 		input_required "SSH authority (e.g. user@server.uberspace.de) " PROJECT_SSH_AUTHORITY
+	else
+		if [[ ! ${flag__provision_remote} ]]; then
+			exit 1;
+		fi
 	fi
 
 	# Create remote repository
-	if ! createRemoteProject ${PROJECT_NAME} ${PROJECT_SSH_AUTHORITY}; then
+	if ! createRemoteProject "${PROJECT_NAME}" "${PROJECT_SSH_AUTHORITY}" "${flag__provision_remote}"; then
 		echo_error 'Remote repository could not be created. Maybe you can join it.';
 		exit 1;
 	fi
@@ -99,10 +136,9 @@ function create() {
 	cd ${PROJECT_PATH}
 
 	# Add remote to git repository
-	if ! git remote | grep ${GIT_ORIGIN_NAME} > /dev/null; then
-		git remote add ${GIT_ORIGIN_NAME} ${GIT_ORIGIN_URL}
-		echo_notify "Added remote '${GIT_ORIGIN_NAME}' to repository"
-		echo_notify_white "URL: ${GIT_ORIGIN_URL}"
+	if ! git remote | grep ${PROJECT_GIT_REMOTE_NAME} > /dev/null; then
+		git remote add "${PROJECT_GIT_REMOTE_NAME}" "${GIT_ORIGIN_URL}"
+		echo_notify "Added remote '${PROJECT_GIT_REMOTE_NAME}' to repository"
 	fi
 
 	# Notify
@@ -196,31 +232,13 @@ function deploy() {
 			fi
 		fi
 
-		echo_notify "Pushing to ${PROJECT_GIT_REMOTE_NAME}"
+
 
 		# Push to remote
-		RES=$(git push --porcelain "${PROJECT_GIT_REMOTE_NAME}" master 2>&1);
-		RES_CODE=$?;
-
-		echo "$RES" | while read line; do
-			REMOTE=$( echo `echo $line | grep remote` | sed -n -e 's/^.*remote: //p' )
-			if [[ -n ${REMOTE} ]]; then
-				echo -e "$REMOTE";
-			fi
-		done
-
-
-		if [[ ${RES_CODE} -eq 0 ]]; then
+		if git_push "${PROJECT_GIT_REMOTE_NAME}"; then
 			echo_notify "Project '${PROJECT_NAME}' successfully uberdeployed =)"
 		else
-			case ${RES_CODE} in
-				128)
-					echo_error "Remote repository does not appear to exist.";
-					echo_debug_note "You could create it with:\nuberdeploy create";
-				;;
-				*) echo_error "$RES" ;;
-			esac
-
+			echo_error "Deployment of '${PROJECT_NAME}' failed."
 		fi
 
 	else
@@ -258,13 +276,6 @@ function help() {
 
 
 
-
-
-
-
-
-
-
 # Updates the current installation of uberdeploy on your machine
 function update() {
 
@@ -289,6 +300,35 @@ function update() {
 
 	esac
 }
+
+
+
+# Run a projects RUN-command from config
+function runProject() {
+	if calledFromProjectPath; then
+
+		# Set project variables
+		project_setProjectVars ${PWD};
+
+		# Collect project variables (config,git-config)
+		project_collectProjectVars ${PROJECT_PATH};
+
+		local RUNCOMMAND=$(uberdeploy_getConfigValue 'RUN');
+
+		if isString ${RUNCOMMAND}; then
+			echo_notify "Running: ${RUNCOMMAND}";
+			${RUNCOMMAND}
+		else
+			echo_error "No run command found.";
+			exit 1;
+		fi
+
+	else
+		echo_error "Project not found. Move to a projects folder.";
+	fi
+}
+
+
 
 
 
